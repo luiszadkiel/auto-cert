@@ -40,6 +40,9 @@ COPY requirements.txt .
 # Instalar librerías de Python
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Instalar navegadores de Playwright (y sus dependencias de SO)
+RUN playwright install --with-deps chromium
+
 # Copiar el resto de la aplicación
 COPY . .
 
