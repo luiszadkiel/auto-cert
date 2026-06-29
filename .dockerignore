@@ -1,0 +1,9 @@
+.git
+.vscode
+.az_ext
+output/
+__pycache__/
+*.pyc
+.env
+Dockerfile
+.dockerignore

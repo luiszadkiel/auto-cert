@@ -1,0 +1,149 @@
+"""
+api/app.py
+───────────
+FastAPI application — API REST simplificada.
+Un solo endpoint sincrónico que ejecuta todo el flujo de descubrimiento
+(Azure Graph, K8s namespaces, secrets, extracción JKS/CRT) y retorna
+inmediatamente el JSON con la data consolidada.
+"""
+
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
+
+import os
+import threading
+import builtins
+import io
+from fastapi import FastAPI, Header, HTTPException, Body, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from typing import Optional
+
+from config.settings import API_TRIGGER_TOKEN
+from controllers.jks_discovery_controller import JksDiscoveryController
+from api.log_manager import log_manager, send_log_sync
+from services.azure_auth_service import AzureAuthService
+
+# Sobrescribir print() globalmente para interceptar logs
+_original_print = builtins.print
+
+def broadcast_print(*args, **kwargs):
+    _original_print(*args, **kwargs)
+    sio = io.StringIO()
+    _original_print(*args, **kwargs, file=sio)
+    msg = sio.getvalue()
+    send_log_sync(msg)
+
+builtins.print = broadcast_print
+
+app = FastAPI(
+    title="Cert Automation API",
+    description="API REST de exploracion masiva de certificados BHD (CRT + JKS) — integracion simplificada",
+    version="2.0.0",
+)
+
+os.makedirs("output", exist_ok=True)
+os.makedirs("api/static", exist_ok=True)
+
+app.mount("/static", StaticFiles(directory="api/static"), name="static")
+app.mount("/output", StaticFiles(directory="output"), name="output")
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    if not os.path.exists("api/static/index.html"):
+        return "<h1>Dashboard UI not found</h1>"
+    with open("api/static/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+@app.websocket("/ws/logs")
+async def websocket_endpoint(websocket: WebSocket):
+    await log_manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        log_manager.disconnect(websocket)
+
+@app.post("/api/v1/auth/login")
+async def trigger_device_login():
+    """Ejecuta el login interactivo y envía el código al WebSocket"""
+    def run_login():
+        auth = AzureAuthService()
+        auth.interactive_device_login(send_log_sync)
+        
+    threading.Thread(target=run_login, daemon=True).start()
+    return {"message": "Login iniciado. Revisa los logs para el código de dispositivo."}
+
+@app.get("/api/v1/results")
+async def list_results():
+    """Lista los archivos generados en output/"""
+    files = []
+    if os.path.exists("output"):
+        for f in os.listdir("output"):
+            if f.endswith(".json") or f.endswith(".xlsx"):
+                files.append({
+                    "name": f,
+                    "url": f"/output/{f}",
+                    "size": os.path.getsize(os.path.join("output", f))
+                })
+    return {"files": sorted(files, key=lambda x: x["name"], reverse=True)}
+
+# ─── Healthcheck ──────────────────────────────────────────────────────────────
+
+@app.get("/api/v1/health")
+async def health():
+    """Healthcheck simple — confirma que el proceso está vivo."""
+    return {"status": "ok"}
+
+
+# ─── Discovery (Sync) ─────────────────────────────────────────────────────────
+
+@app.post("/api/v1/k8s-sync/scan")
+@app.get("/api/v1/k8s-sync/scan")
+async def scan_certificates(
+    x_api_key: Optional[str] = Header(None),
+    filter_data: Optional[dict] = Body(None)
+):
+    """
+    Dispara la exploración masiva de certificados de manera SINCRÓNICA.
+    
+    Puedes hacer un GET (escanea todo) o un POST pasándole un body:
+    {"names": ["nombre-cluster"]} para filtrar.
+    
+    Retorna directamente el JSON con el payload de certificados descubiertos.
+    """
+    # Validar token si está configurado en el .env
+    if API_TRIGGER_TOKEN and x_api_key != API_TRIGGER_TOKEN:
+        raise HTTPException(status_code=403, detail="Token de API inválido o ausente")
+
+    # Mapear el body a los argumentos del controller (filter_mode="names", run_filter={"names": [...]})
+    filter_mode = None
+    run_filter = {}
+    
+    if filter_data and "names" in filter_data and isinstance(filter_data["names"], list):
+        filter_mode = "names"
+        run_filter = {"names": filter_data["names"]}
+
+    # Ejecutar controlador de forma síncrona
+    print("[API] Iniciando escaneo masivo síncrono...")
+    controller = JksDiscoveryController()
+    
+    try:
+        # El controlador es async, usamos await run(...)
+        resultado = await controller.run(
+            run_filter=run_filter
+        )
+        
+        if "error" in resultado:
+            raise HTTPException(status_code=500, detail=resultado["error"])
+            
+        print(f"[API] Escaneo completado. Se retornan {resultado.get('total_certs', 0)} certificados.")
+        # Ajustar para que retorne lo que Zabbix espera
+        return {
+            "total": resultado.get("total_certs", 0),
+            "certificados": resultado.get("payload", [])
+        }
+        
+    except Exception as e:
+        print(f"[API] Error durante el escaneo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

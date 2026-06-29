@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Cert Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(25, 30, 45, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --font-main: 'Inter', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        header h1 {
+            font-weight: 600;
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .container {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            flex: 1;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-family: var(--font-main);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #34d399;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: none;
+        }
+
+        .auth-status {
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .terminal-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal {
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            font-family: var(--font-code);
+            font-size: 0.85rem;
+            color: #a3be8c;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            height: 600px;
+        }
+
+        .terminal span.info { color: #88c0d0; }
+        .terminal span.warn { color: #ebcb8b; }
+        .terminal span.error { color: #bf616a; }
+        .terminal span.ok { color: #a3be8c; }
+
+        .results-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .result-item:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .result-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .result-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .result-size {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .download-btn {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .download-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .status-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+            margin-right: 8px;
+        }
+
+        .status-badge.connected {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Auto-Cert ⚡ Dashboard</h1>
+        <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+            <div><span class="status-badge" id="ws-status"></span>WS Conectado</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <!-- Auth Panel -->
+            <div class="panel">
+                <h2>1. Autenticación Azure</h2>
+                <div class="auth-status">
+                    <p id="auth-instructions" style="color: var(--text-muted); margin-bottom: 1rem;">
+                        Presiona el botón para solicitar un código de login. Aparecerá en la consola.
+                    </p>
+                    <button class="btn" onclick="startLogin()">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
+                        Login Interactivo (Device Code)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Execution Panel -->
+            <div class="panel">
+                <h2>2. Escaneo Masivo</h2>
+                <p style="font-size: 0.9rem; color: var(--text-muted);">
+                    Dispara la exploración completa de todos los clusters y namespaces.
+                </p>
+                <button class="btn btn-success" onclick="startScan()">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Iniciar Escaneo
+                </button>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                    <h2 style="border: none; padding: 0;">3. Resultados</h2>
+                    <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" onclick="loadResults()">↻ Refrescar</button>
+                </div>
+                <ul class="results-list" id="results-list">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">Cargando archivos...</p>
+                </ul>
+            </div>
+            
+        </div>
+
+        <!-- Main Console -->
+        <div class="panel terminal-container">
+            <h2>Consola en Vivo</h2>
+            <div class="terminal" id="terminal">
+                <div style="color: #4c566a;">// Esperando conexión...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Terminal Logic
+        const terminal = document.getElementById('terminal');
+        
+        function appendLog(msg) {
+            const div = document.createElement('div');
+            
+            if (msg.includes('[ERROR]') || msg.includes('[!]')) div.className = 'error';
+            else if (msg.includes('[WARN]')) div.className = 'warn';
+            else if (msg.includes('[OK]') || msg.includes('✓')) div.className = 'ok';
+            else div.className = 'info';
+            
+            div.textContent = msg;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // WebSocket Setup
+        function connectWS() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
+            const ws = new WebSocket(wsUrl);
+            const badge = document.getElementById('ws-status');
+            
+            ws.onopen = () => {
+                badge.classList.add('connected');
+                terminal.innerHTML = '<div style="color: #4c566a;">// Conectado al stream de logs.</div>';
+            };
+            
+            ws.onmessage = (event) => {
+                appendLog(event.data);
+            };
+            
+            ws.onclose = () => {
+                badge.classList.remove('connected');
+                setTimeout(connectWS, 2000);
+            };
+        }
+
+        // API Calls
+        async function startLogin() {
+            try {
+                const res = await fetch('/api/v1/auth/login', { method: 'POST' });
+                const data = await res.json();
+                appendLog(`> ${data.message}`);
+            } catch (err) {
+                appendLog(`[ERROR] Falló al solicitar login: ${err}`);
+            }
+        }
+
+        async function startScan() {
+            appendLog("> Iniciando request al backend para escaneo masivo...");
+            try {
+                const res = await fetch('/api/v1/k8s-sync/scan', { method: 'POST' });
+                if (res.ok) {
+                    appendLog("[OK] Escaneo completado. Actualizando lista de resultados...");
+                    setTimeout(loadResults, 1000);
+                } else {
+                    const error = await res.json();
+                    appendLog(`[ERROR] El backend reportó error: ${JSON.stringify(error)}`);
+                }
+            } catch (err) {
+                appendLog(`[ERROR] Falló la petición: ${err}`);
+            }
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (!+bytes) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+        }
+
+        async function loadResults() {
+            const list = document.getElementById('results-list');
+            try {
+                const res = await fetch('/api/v1/results');
+                const data = await res.json();
+                
+                list.innerHTML = '';
+                if (data.files.length === 0) {
+                    list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No hay archivos generados aún.</p>';
+                    return;
+                }
+
+                data.files.forEach(file => {
+                    const li = document.createElement('li');
+                    li.className = 'result-item fade-in';
+                    li.innerHTML = `
+                        <div class="result-info">
+                            <span class="result-name">${file.name}</span>
+                            <span class="result-size">${formatBytes(file.size)}</span>
+                        </div>
+                        <a href="${file.url}" download="${file.name}" class="download-btn">Descargar</a>
+                    `;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                list.innerHTML = `<p style="color: var(--danger); font-size: 0.9rem;">Error cargando resultados</p>`;
+            }
+        }
+
+        window.onload = () => {
+            connectWS();
+            loadResults();
+        };
+    </script>
+</body>
+</html>
