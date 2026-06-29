@@ -60,16 +60,16 @@ def build_discovery_payload(all_certs: list[K8sCert]) -> list[dict]:
             not_after = not_after.replace(tzinfo=timezone.utc)
 
         payload.append({
-            "organizacion": getattr(cert, "organization", ""),
-            "estructura_organizacional": getattr(cert, "organizational_unit", ""),
-            "nombre_certificado": cert.common_name,
-            "alias_jks": getattr(cert, "alias", ""),
-            "ambiente": _inferir_ambiente_de_namespace(cert.namespace) or "",
-            "fecha_inicio_certificado": cert.not_before.isoformat() if cert.not_before else None,
-            "fecha_vencimiento_certificado": not_after.isoformat() if not_after else None,
             "cluster": cert.cluster,
+            "ambiente": _inferir_ambiente_de_namespace(cert.namespace) or "",
             "secreto_k8s": cert.secret_name,
             "archivo_jks": cert.data_key,
+            "alias_certificado_individual": getattr(cert, "alias", ""),
+            "nombre_certificado": cert.common_name,
+            "organizacion": getattr(cert, "organization", ""),
+            "estructura_organizacional": getattr(cert, "organizational_unit", ""),
+            "fecha_inicio_certificado": cert.not_before.isoformat() if cert.not_before else None,
+            "fecha_vencimiento_certificado": not_after.isoformat() if not_after else None,
             "password": cert.password,
             "pod_vinculado": getattr(cert, "pods", ""),
             "servidor_nodo": getattr(cert, "nodes", ""),

@@ -248,13 +248,47 @@
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn.active {
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .terminal-wrapper {
+            display: none;
+            flex: 1;
+        }
+
+        .terminal-wrapper.active {
+            display: flex;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
     <header>
         <h1>Auto-Cert ⚡ Dashboard</h1>
         <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
-            <div><span class="status-badge" id="ws-status"></span>WS Conectado</div>
+            <div><span class="status-badge" id="ws-status"></span>AKS Conectado</div>
+            <div><span class="status-badge" id="ws-legacy-status"></span>Legacy Conectado</div>
         </div>
     </header>
 
@@ -303,18 +337,45 @@
 
         <!-- Main Console -->
         <div class="panel terminal-container">
-            <h2>Consola en Vivo</h2>
-            <div class="terminal" id="terminal">
-                <div style="color: #4c566a;">// Esperando conexión...</div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('aks')">Logs AKS / Azure</button>
+                <button class="tab-btn" onclick="switchTab('legacy')">Logs Servidores Legacy</button>
+            </div>
+            
+            <div class="terminal-wrapper active" id="terminal-aks-wrapper">
+                <div class="terminal" id="terminal-aks">
+                    <div style="color: #4c566a;">// Esperando conexión...</div>
+                </div>
+            </div>
+            
+            <div class="terminal-wrapper" id="terminal-legacy-wrapper">
+                <div class="terminal" id="terminal-legacy">
+                    <div style="color: #4c566a;">// Esperando conexión...</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Tab Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.terminal-wrapper').forEach(wrapper => wrapper.classList.remove('active'));
+            
+            if(tabId === 'aks') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('terminal-aks-wrapper').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('terminal-legacy-wrapper').classList.add('active');
+            }
+        }
+
         // Terminal Logic
-        const terminal = document.getElementById('terminal');
+        const terminalAks = document.getElementById('terminal-aks');
+        const terminalLegacy = document.getElementById('terminal-legacy');
         
-        function appendLog(msg) {
+        function appendLog(msg, terminal) {
             const div = document.createElement('div');
             
             if (msg.includes('[ERROR]') || msg.includes('[!]')) div.className = 'error';
@@ -330,23 +391,33 @@
         // WebSocket Setup
         function connectWS() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
-            const ws = new WebSocket(wsUrl);
-            const badge = document.getElementById('ws-status');
             
-            ws.onopen = () => {
-                badge.classList.add('connected');
-                terminal.innerHTML = '<div style="color: #4c566a;">// Conectado al stream de logs.</div>';
-            };
+            // AKS WebSocket
+            const wsAksUrl = `${protocol}//${window.location.host}/ws/logs`;
+            const wsAks = new WebSocket(wsAksUrl);
+            const badgeAks = document.getElementById('ws-status');
             
-            ws.onmessage = (event) => {
-                appendLog(event.data);
+            wsAks.onopen = () => {
+                badgeAks.classList.add('connected');
+                terminalAks.innerHTML = '<div style="color: #4c566a;">// Conectado al stream de logs AKS.</div>';
             };
+            wsAks.onmessage = (event) => appendLog(event.data, terminalAks);
+            wsAks.onclose = () => {
+                badgeAks.classList.remove('connected');
+                setTimeout(connectWS, 5000); // Only try reconnecting main loop
+            };
+
+            // Legacy WebSocket
+            const wsLegacyUrl = `${protocol}//${window.location.host}/ws/logs/legacy`;
+            const wsLegacy = new WebSocket(wsLegacyUrl);
+            const badgeLegacy = document.getElementById('ws-legacy-status');
             
-            ws.onclose = () => {
-                badge.classList.remove('connected');
-                setTimeout(connectWS, 2000);
+            wsLegacy.onopen = () => {
+                badgeLegacy.classList.add('connected');
+                terminalLegacy.innerHTML = '<div style="color: #4c566a;">// Conectado al stream de logs Legacy.</div>';
             };
+            wsLegacy.onmessage = (event) => appendLog(event.data, terminalLegacy);
+            wsLegacy.onclose = () => badgeLegacy.classList.remove('connected');
         }
 
         // API Calls

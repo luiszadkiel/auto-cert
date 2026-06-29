@@ -29,11 +29,20 @@ class LogManager:
                 pass
 
 log_manager = LogManager()
+legacy_log_manager = LogManager()
 
 def send_log_sync(message: str):
     """Permite enviar logs desde código síncrono."""
     try:
         loop = asyncio.get_running_loop()
         loop.create_task(log_manager.broadcast(message + "\n"))
+    except RuntimeError:
+        pass
+
+def send_legacy_log_sync(message: str):
+    """Permite enviar logs de legacy desde código síncrono."""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(legacy_log_manager.broadcast(message + "\n"))
     except RuntimeError:
         pass

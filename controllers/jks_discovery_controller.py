@@ -27,6 +27,7 @@ from config.settings import OUTPUT_DIR
 from services.azure_auth_service import AzureAuthService
 from services.k8s_service import K8sService
 from services.jks_export_service import build_discovery_payload
+from services.legacy_discovery_service import LegacyDiscoveryService
 from models.k8s_cert import K8sCert
 from views.reporter import save_json, save_excel, build_output_paths, print_banner
 
@@ -166,17 +167,33 @@ class JksDiscoveryController:
                 except:
                     pass
 
+        # ── Escanear Servidores Legacy ───────────────────────────────────────
+        legacy_service = LegacyDiscoveryService()
+        legacy_payload = await legacy_service.scan_all()
+
         # ── Guardar reportes ─────────────────────────────────────────────────
         paths = build_output_paths(OUTPUT_DIR, "jks_discovery")
+        # Generar JSON de Legacy
+        legacy_json_path = paths["json"].replace("jks_discovery", "legacy_servers")
+        
         save_json(payload, paths["json"])
-        save_excel(payload, paths["excel"])
+        save_json(legacy_payload, legacy_json_path)
+        
+        # Generar Excel unificado (con ambas pestañas)
+        unified_data = {
+            "AKS": payload,
+            "Servidores": legacy_payload
+        }
+        save_excel(unified_data, paths["excel"])
 
         print_banner(
             f"Exploracion masiva completada\n"
             f"  Clusters: {len(cluster_list)} | JKS encontrados: {len(payload)} "
             f"(Vencidos: {vencidos})\n"
-            f"  Reporte JSON : {os.path.abspath(paths['json'])}\n"
-            f"  Reporte EXCEL: {os.path.abspath(paths['excel'])}"
+            f"  Servidores Legacy: {len(legacy_payload)}\n"
+            f"  Reporte JSON AKS : {os.path.abspath(paths['json'])}\n"
+            f"  Reporte JSON Leg : {os.path.abspath(legacy_json_path)}\n"
+            f"  Reporte EXCEL    : {os.path.abspath(paths['excel'])}"
         )
 
         return {

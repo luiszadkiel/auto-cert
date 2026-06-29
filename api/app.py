@@ -21,7 +21,7 @@ from typing import Optional
 
 from config.settings import API_TRIGGER_TOKEN
 from controllers.jks_discovery_controller import JksDiscoveryController
-from api.log_manager import log_manager, send_log_sync
+from api.log_manager import log_manager, send_log_sync, legacy_log_manager, send_legacy_log_sync
 from services.azure_auth_service import AzureAuthService
 
 # Sobrescribir print() globalmente para interceptar logs
@@ -32,7 +32,11 @@ def broadcast_print(*args, **kwargs):
     sio = io.StringIO()
     _original_print(*args, **kwargs, file=sio)
     msg = sio.getvalue()
-    send_log_sync(msg)
+    # Si el log contiene "[Legacy]" mandarlo al canal legacy, sino al normal
+    if "[Legacy]" in msg:
+        send_legacy_log_sync(msg)
+    else:
+        send_log_sync(msg)
 
 builtins.print = broadcast_print
 
@@ -63,6 +67,15 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.receive_text()
     except WebSocketDisconnect:
         log_manager.disconnect(websocket)
+
+@app.websocket("/ws/logs/legacy")
+async def websocket_legacy_endpoint(websocket: WebSocket):
+    await legacy_log_manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        legacy_log_manager.disconnect(websocket)
 
 @app.post("/api/v1/auth/login")
 async def trigger_device_login():

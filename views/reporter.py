@@ -73,14 +73,21 @@ def save_csv(data: list[dict], path: str) -> str:
     return path
 
 
-def save_excel(data: list[dict], path: str) -> str:
+def save_excel(data: list[dict] | dict[str, list[dict]], path: str) -> str:
     if not data:
         return ""
     _ensure(path)
     try:
         import pandas as pd
-        df = pd.DataFrame(data)
-        df.to_excel(path, index=False)
+        if isinstance(data, dict):
+            with pd.ExcelWriter(path) as writer:
+                for sheet_name, sheet_data in data.items():
+                    if sheet_data:
+                        df = pd.DataFrame(sheet_data)
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+        else:
+            df = pd.DataFrame(data)
+            df.to_excel(path, index=False)
         print(f"  ✓ EXCEL → {path}")
     except ImportError:
         print(f"  ⚠ EXCEL → No se pudo generar {path} (pandas/openpyxl no instalados)")
