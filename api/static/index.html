@@ -425,25 +425,25 @@
             try {
                 const res = await fetch('/api/v1/auth/login', { method: 'POST' });
                 const data = await res.json();
-                appendLog(`> ${data.message}`);
+                appendLog(`> ${data.message}`, terminalAks);
             } catch (err) {
-                appendLog(`[ERROR] Falló al solicitar login: ${err}`);
+                appendLog(`[ERROR] Falló al solicitar login: ${err}`, terminalAks);
             }
         }
 
         async function startScan() {
-            appendLog("> Iniciando request al backend para escaneo masivo...");
+            appendLog("> Iniciando request al backend para escaneo masivo...", terminalAks);
             try {
                 const res = await fetch('/api/v1/k8s-sync/scan', { method: 'POST' });
                 if (res.ok) {
-                    appendLog("[OK] Escaneo completado. Actualizando lista de resultados...");
+                    appendLog("[OK] Escaneo completado. Actualizando lista de resultados...", terminalAks);
                     setTimeout(loadResults, 1000);
                 } else {
                     const error = await res.json();
-                    appendLog(`[ERROR] El backend reportó error: ${JSON.stringify(error)}`);
+                    appendLog(`[ERROR] El backend reportó error: ${JSON.stringify(error)}`, terminalAks);
                 }
             } catch (err) {
-                appendLog(`[ERROR] Falló la petición: ${err}`);
+                appendLog(`[ERROR] Falló la petición: ${err}`, terminalAks);
             }
         }
 
