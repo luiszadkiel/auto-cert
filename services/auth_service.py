@@ -104,6 +104,15 @@ class AuthService:
                 print(f"\r  [Auth] {G}{B}✓ MFA aprobado — sesión activa.{X}                    ")
                 return
 
+            # Revisar si apareció el prompt KMSI después del MFA
+            try:
+                kmsi = await self.page.query_selector("#KmsiCheckboxField")
+                if kmsi:
+                    await self.page.click("input[type='submit']")
+                    print("\n  [Auth] Prompt de sesión post-MFA confirmado.")
+            except Exception:
+                pass
+
             remaining = int(deadline - loop.time())
             print(f"\r  [Auth] {Y}⏳ MFA pendiente... {remaining:3d}s restantes{X}   ", end="", flush=True)
             await asyncio.sleep(2)
