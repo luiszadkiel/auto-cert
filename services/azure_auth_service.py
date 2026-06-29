@@ -124,7 +124,8 @@ class AzureAuthService:
         cmd = ["az", "extension", "add", "--name", "resource-graph", "--only-show-errors"]
         res = self.run_cmd(cmd, timeout=60)
         if res.returncode != 0:
-            print(f"  [WARN] az extension add devolvió error, pero se intentará continuar: {res.stderr.strip()}")
+            print(f"  [ERROR] az extension add devolvió error: {res.stderr.strip()}")
+            return False
         return True
 
     def discover_all_aks_clusters(self) -> list[dict]:
@@ -178,12 +179,40 @@ class AzureAuthService:
 
     def preflight_rbac_check(self, subscription_id: str, resource_group: str, cluster_name: str) -> bool:
         """
-        [MODIFICADO] El chequeo estricto por Object ID a veces falla con accesos
-        heredados (ej. dueño de la suscripción). Para no omitir clústeres válidos,
-        confiaremos en 'az aks get-credentials' y 'kubectl auth can-i' como la
-        verdadera validación.
+        Verifica si el usuario actual tiene asignaciones de rol (incluyendo heredadas y de grupos)
+        sobre el clúster. Esto evita ejecutar get-credentials y kubelogin inútilmente si no hay permisos.
         """
-        return True
+        # Obtenemos y cacheamos el ID del usuario firmado
+        if not hasattr(self, "_user_id"):
+            res = self.run_cmd(["az", "ad", "signed-in-user", "show", "--query", "id", "-o", "tsv"])
+            if res.returncode == 0 and res.stdout.strip():
+                self._user_id = res.stdout.strip()
+            else:
+                print("  [WARN] No se pudo obtener el ID del usuario firmado. Omitiendo preflight estricto.")
+                return True  # Fallback
+                
+        scope = f"/subscriptions/{subscription_id}/resourceGroups/{resource_group}/providers/Microsoft.ContainerService/managedClusters/{cluster_name}"
+        cmd = [
+            "az", "role", "assignment", "list",
+            "--assignee", self._user_id,
+            "--scope", scope,
+            "--include-inherited",
+            "--include-groups",
+            "-o", "json"
+        ]
+        
+        try:
+            res = self.run_cmd(cmd, timeout=30)
+            if res.returncode == 0:
+                import json
+                assignments = json.loads(res.stdout.strip() or "[]")
+                return len(assignments) > 0
+            else:
+                print(f"  [WARN] Error consultando role assignments: {res.stderr.strip()}")
+                return True  # Fallback a intentar conectarse
+        except Exception as e:
+            print(f"  [WARN] Excepción en preflight_rbac_check: {e}")
+            return True
 
     def configure_cluster_context(self, resource_group: str, cluster_name: str) -> bool:
         """

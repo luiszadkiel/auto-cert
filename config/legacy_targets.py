@@ -221,5 +221,5 @@ LEGACY_SERVERS = [
     "172.17.103.13:443|serzbxdev01|SERZBXDEV01|Zabbix",
     "172.17.102.94:443|template-aix|Template AIX|Template de AIX Para Base de Datos Oracle",
     # ─── SIN IP (pendiente de completar) ────────────────────────────────────
-    "PENDIENTE:443|serflspoc01|SERFLSPOC01|File Server DFS Namespace POC"
+    "172.17.128.80:443|serflspoc01|SERFLSPOC01|File Server DFS Namespace POC"
 ]

@@ -31,7 +31,7 @@ class LegacyDiscoveryService:
             
             ip_only = conn.split(':')[0] if ':' in conn else conn
             
-            if conn == "PENDIENTE:443":
+            if conn.startswith("PENDIENTE"):
                 print(f"[Legacy] Saltando {alias} (SIN IP)")
                 return {
                     "SERVIDOR": alias,
