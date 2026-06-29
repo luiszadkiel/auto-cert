@@ -243,7 +243,7 @@ class AzureAuthService:
         Consulta si el clúster usa Azure RBAC for Kubernetes.
         """
         cmd = [
-            "az.cmd", "aks", "show", 
+            "az", "aks", "show", 
             "--resource-group", resource_group, 
             "--name", cluster_name, 
             "--query", "aadProfile.enableAzureRbac", 

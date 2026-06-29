@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     apt-transport-https \
     lsb-release \
     gnupg \
+    default-jre-headless \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar Azure CLI desde los repositorios oficiales de Microsoft

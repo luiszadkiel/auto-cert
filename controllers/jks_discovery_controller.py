@@ -67,18 +67,22 @@ class JksDiscoveryController:
             return {"error": "No clusters discovered"}
 
         # ── Filtrar clusters si aplica ────────────────────────────────────────
-        if filter_mode == "names":
-            requested = [n.lower() for n in run_filter["names"]]
-            cluster_list = [c for c in discovered_clusters if c.get("name", "").lower() in requested]
-        else:
-            # Omitir clusters de produccion por defecto
-            cluster_list = []
-            for c in discovered_clusters:
-                name = c.get("name", "").lower()
-                if "prd" in name or "prod" in name:
-                    print(f"  [INFO] Omitiendo cluster de produccion: {name}")
+        cluster_list = []
+        for c in discovered_clusters:
+            name = c.get("name", "").lower()
+            
+            # 1. Filtro por nombres específicos (si aplica)
+            if filter_mode == "names":
+                requested = [n.lower() for n in run_filter["names"]]
+                if name not in requested:
                     continue
-                cluster_list.append(c)
+            
+            # 2. Omitir clusters de produccion por defecto (a menos que se hayan pedido explícitamente y queramos ignorar esto, pero por seguridad siempre omitimos)
+            if "prd" in name or "prod" in name:
+                print(f"  [INFO] Omitiendo cluster de produccion: {name}")
+                continue
+                
+            cluster_list.append(c)
 
         print(f"\n[*] Iniciando exploracion masiva de certificados (CRT + JKS)")
         print(f"    {len(cluster_list)} cluster(s) a procesar (de {len(discovered_clusters)} descubiertos en el tenant)\n")
