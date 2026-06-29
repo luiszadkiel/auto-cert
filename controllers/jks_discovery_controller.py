@@ -21,6 +21,7 @@ Flujo:
 """
 
 import os
+import asyncio
 from datetime import datetime, timezone
 
 from config.settings import OUTPUT_DIR
@@ -70,13 +71,27 @@ class JksDiscoveryController:
             requested = [n.lower() for n in run_filter["names"]]
             cluster_list = [c for c in discovered_clusters if c.get("name", "").lower() in requested]
         else:
-            cluster_list = discovered_clusters
+            # Omitir clusters de produccion por defecto
+            cluster_list = []
+            for c in discovered_clusters:
+                name = c.get("name", "").lower()
+                if "prd" in name or "prod" in name:
+                    print(f"  [INFO] Omitiendo cluster de produccion: {name}")
+                    continue
+                cluster_list.append(c)
 
         print(f"\n[*] Iniciando exploracion masiva de certificados (CRT + JKS)")
         print(f"    {len(cluster_list)} cluster(s) a procesar (de {len(discovered_clusters)} descubiertos en el tenant)\n")
 
-        # ── Recorrer cada cluster ───────────────────────────────────────────
+        # ── Iniciar Escaneo de Servidores Legacy en paralelo ─────────────────
+        legacy_service = LegacyDiscoveryService()
+        legacy_task = asyncio.create_task(legacy_service.scan_all())
+
+        # ── Recorrer cada cluster (AKS) ─────────────────────────────────────
         for cluster_meta in cluster_list:
+            # Permitir que el event loop respire para procesar la tarea Legacy y WebSockets en paralelo
+            await asyncio.sleep(0.1)
+
             cluster_name = cluster_meta.get("name")
             sub_id = cluster_meta.get("subscriptionId")
             rg = cluster_meta.get("resourceGroup")
@@ -98,27 +113,23 @@ class JksDiscoveryController:
 
             # 3. Configure Context (az aks get-credentials + kubelogin)
             if not auth_svc.configure_cluster_context(rg, cluster_name):
-                print(f"  [!] Ignorando {cluster_name}: Error al configurar el contexto local.")
-                cluster_summaries.append({"cluster": cluster_name, "error": "Context Config Error", "certs": 0})
+                print(f"  [!] Ignorando {cluster_name}: Falló la descarga de credenciales.")
+                cluster_summaries.append({"cluster": cluster_name, "error": "Kubeconfig Error", "certs": 0})
                 continue
 
-            # 4. Verificación Real con kubectl auth can-i
+            # 4. Final auth verification
             if not auth_svc.auth_cani_check(ctx):
-                is_azure_rbac = auth_svc.check_azure_rbac_enabled(rg, cluster_name)
-                if is_azure_rbac:
-                    print(f"  [!] Ignorando {cluster_name}: Sin permisos. Requiere ROL DE AZURE ('Azure Kubernetes Service RBAC Reader').")
-                    cluster_summaries.append({"cluster": cluster_name, "error": "Forbidden (Requires Azure RBAC)", "certs": 0})
-                else:
-                    print(f"  [!] Ignorando {cluster_name}: Sin permisos. Requiere ROL NATIVO (ClusterRoleBinding interno).")
-                    cluster_summaries.append({"cluster": cluster_name, "error": "Forbidden (Requires Native RBAC)", "certs": 0})
+                print(f"  [!] Ignorando {cluster_name}: No se puede listar pods en kube-system.")
+                cluster_summaries.append({"cluster": cluster_name, "error": "Auth Denied", "certs": 0})
                 continue
 
-            # Ahora sí procedemos al escaneo
-            namespaces = svc.list_namespaces(cluster_name)
-
+            # 5. Extract K8s Certs
+            print(f"  [{cluster_name}] Iniciando escaneo de namespaces (JKS y TLS)...")
+            cluster_cert_count = 0
+            k8s_svc = K8sService()
+            namespaces = k8s_svc.list_namespaces(cluster_name)
             if not namespaces:
                 print(f"  [{cluster_name}] ⚠ inaccesible o sin namespaces — se omite")
-
                 cluster_summaries.append({
                     "cluster": cluster_name, "namespaces": 0,
                     "certs": 0, "error": "inaccesible",
@@ -126,18 +137,22 @@ class JksDiscoveryController:
                 continue
 
             print(f"  [{cluster_name}] {len(namespaces)} namespace(s) detectados")
-            cluster_cert_count = 0
 
             for ns in namespaces:
-                if filter_mode == "limit" and len(all_certs) >= run_filter["limit"]:
-                    break
+                # Ceder control al event loop para que los WebSockets y Legacy escaneen
+                await asyncio.sleep(0.05)
 
-                certs = svc.list_secrets_with_all_certs(cluster_name, ns)
+                certs = k8s_svc.list_secrets_with_all_certs(cluster_name, ns)
                 if certs:
                     print(f"    [{cluster_name}/{ns}] {len(certs)} certificado(s)/alias encontrados")
-                all_certs.extend(certs)
-                cluster_cert_count += len(certs)
-
+                    for cert in certs:
+                        cert.cluster = cluster_name
+                        all_certs.append(cert)
+                        cluster_cert_count += 1
+                
+                # Check limits
+                if filter_mode == "limit" and len(all_certs) >= run_filter["limit"]:
+                    break
 
             cluster_summaries.append({
                 "cluster": cluster_name,
@@ -151,7 +166,7 @@ class JksDiscoveryController:
         if filter_mode == "limit":
             all_certs = all_certs[: run_filter["limit"]]
 
-        # ── Estructurar resultado ───────────────────────────────────────────
+        # ── Estructurar resultado AKS ───────────────────────────────────────
         payload = build_discovery_payload(all_certs)
         jks_count = len(payload)
         
@@ -167,9 +182,9 @@ class JksDiscoveryController:
                 except:
                     pass
 
-        # ── Escanear Servidores Legacy ───────────────────────────────────────
-        legacy_service = LegacyDiscoveryService()
-        legacy_payload = await legacy_service.scan_all()
+        # ── Esperar resultado de Servidores Legacy ──────────────────────────
+        print("\n[INFO] Esperando a que termine el escaneo de Servidores Legacy...")
+        legacy_payload = await legacy_task
 
         # ── Guardar reportes ─────────────────────────────────────────────────
         paths = build_output_paths(OUTPUT_DIR, "jks_discovery")
