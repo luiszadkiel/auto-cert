@@ -15,7 +15,7 @@ import threading
 import builtins
 import io
 from fastapi import FastAPI, Header, HTTPException, Body, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Optional
 
@@ -52,8 +52,12 @@ os.makedirs("api/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="api/static"), name="static")
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
-@app.get("/", response_class=HTMLResponse)
-async def read_root():
+@app.get("/")
+async def redirect_root():
+    return RedirectResponse(url="/dashboard")
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def read_dashboard():
     if not os.path.exists("api/static/index.html"):
         return "<h1>Dashboard UI not found</h1>"
     with open("api/static/index.html", "r", encoding="utf-8") as f:
