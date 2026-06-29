@@ -237,3 +237,23 @@ class AzureAuthService:
         except Exception as e:
             print(f"  [ERROR] Excepción en auth can-i: {e}")
             return False
+
+    def check_azure_rbac_enabled(self, resource_group: str, cluster_name: str) -> bool:
+        """
+        Consulta si el clúster usa Azure RBAC for Kubernetes.
+        """
+        cmd = [
+            "az.cmd", "aks", "show", 
+            "--resource-group", resource_group, 
+            "--name", cluster_name, 
+            "--query", "aadProfile.enableAzureRbac", 
+            "-o", "json"
+        ]
+        try:
+            res = self.run_cmd(cmd, timeout=30)
+            if res.returncode == 0:
+                output = res.stdout.strip().lower()
+                return output == "true"
+        except Exception as e:
+            print(f"  [ERROR] Excepción verificando Azure RBAC: {e}")
+        return False

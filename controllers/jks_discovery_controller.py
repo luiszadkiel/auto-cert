@@ -103,8 +103,13 @@ class JksDiscoveryController:
 
             # 4. Verificación Real con kubectl auth can-i
             if not auth_svc.auth_cani_check(ctx):
-                print(f"  [!] Ignorando {cluster_name}: Sin permisos reales en K8s (auth can-i falló).")
-                cluster_summaries.append({"cluster": cluster_name, "error": "Forbidden (can-i)", "certs": 0})
+                is_azure_rbac = auth_svc.check_azure_rbac_enabled(rg, cluster_name)
+                if is_azure_rbac:
+                    print(f"  [!] Ignorando {cluster_name}: Sin permisos. Requiere ROL DE AZURE ('Azure Kubernetes Service RBAC Reader').")
+                    cluster_summaries.append({"cluster": cluster_name, "error": "Forbidden (Requires Azure RBAC)", "certs": 0})
+                else:
+                    print(f"  [!] Ignorando {cluster_name}: Sin permisos. Requiere ROL NATIVO (ClusterRoleBinding interno).")
+                    cluster_summaries.append({"cluster": cluster_name, "error": "Forbidden (Requires Native RBAC)", "certs": 0})
                 continue
 
             # Ahora sí procedemos al escaneo
