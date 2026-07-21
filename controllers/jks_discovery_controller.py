@@ -128,6 +128,12 @@ class JksDiscoveryController:
 
                 sub_id = cluster_meta.get("subscriptionId")
                 rg = cluster_meta.get("resourceGroup")
+                
+                if not sub_id or not rg:
+                    print(f"  [!] Ignorando {cluster_name}: Faltan metadatos de subscripción o resource group.")
+                    cluster_summaries.append({"cluster": cluster_name, "error": "Faltan metadatos", "certs": 0})
+                    continue
+                    
                 ctx = cluster_name
 
                 print(f"\n[->] Preparando clúster: {cluster_name}")

@@ -8,15 +8,16 @@ inmediatamente el JSON con la data consolidada.
 """
 
 import sys
-sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore
 
 import os
 import threading
 import builtins
 import io
-from fastapi import FastAPI, Header, HTTPException, Body, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, Header, HTTPException, Body, WebSocket, WebSocketDisconnect  # type: ignore
+from fastapi.responses import HTMLResponse, RedirectResponse  # type: ignore
+from fastapi.staticfiles import StaticFiles  # type: ignore
 from typing import Optional
 
 from config.settings import API_TRIGGER_TOKEN
