@@ -1,6 +1,6 @@
 """
 services/zabbix_export_service.py
-──────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Transforma los CertDiff del sync en un payload plano que Zabbix puede consumir.
 
 Cada certificado incluye:
@@ -44,7 +44,7 @@ def build_zabbix_payload(
 
     Args:
         diffs: lista de CertDiff del sync
-        upload_results: dict "namespace/secret" → True/False (resultado de subida)
+        upload_results: dict "namespace/secret" â†’ True/False (resultado de subida)
 
     Returns:
         Lista de dicts listos para serializar a JSON.
@@ -59,7 +59,7 @@ def build_zabbix_payload(
         pc = diff.portal_cert
         cc = diff.cluster_cert
 
-        # ── Fechas: priorizar cluster real, fallback al portal ────────────
+        # â”€â”€ Fechas: priorizar cluster real, fallback al portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if cc and cc.not_after:
             not_after = cc.not_after
             not_before = cc.not_before
@@ -70,7 +70,7 @@ def build_zabbix_payload(
             not_after = None
             not_before = None
 
-        # ── Días restantes ────────────────────────────────────────────────
+        # â”€â”€ Días restantes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if not_after:
             # Asegurar timezone-aware
             if not_after.tzinfo is None:
@@ -81,7 +81,7 @@ def build_zabbix_payload(
 
         estado = _clasificar_estado(dias_restantes)
 
-        # ── Nombre del certificado ────────────────────────────────────────
+        # â”€â”€ Nombre del certificado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         nombre_certificado = ""
         if cc and cc.common_name:
             nombre_certificado = cc.common_name
@@ -90,7 +90,7 @@ def build_zabbix_payload(
         else:
             nombre_certificado = pc.secret_name
 
-        # ── Resultado de subida ───────────────────────────────────────────
+        # â”€â”€ Resultado de subida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         short_name = f"{pc.namespace}/{pc.secret_name}"
         actualizado = upload_results.get(short_name)  # True/False/None
 

@@ -1,12 +1,12 @@
 """
 services/jks_export_service.py
-─────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Construye el payload estructurado y plano de TODOS los certificados (CRT y
 cada alias de cada JKS) descubiertos en el escaneo masivo.
 
 Reemplaza a zabbix_export_service.build_zabbix_payload para el nuevo flujo
 SIN portal: ya no hay "needs_update" ni "actualizado_en_portal" porque no se
-compara contra ningún registro externo ni se sube nada a ningún lado — esto
+compara contra ningún registro externo ni se sube nada a ningún lado â€” esto
 es pura exploración + estructuración.
 
 Cada fila del payload incluye:
@@ -60,19 +60,15 @@ def build_discovery_payload(all_certs: list[K8sCert]) -> list[dict]:
             not_after = not_after.replace(tzinfo=timezone.utc)
 
         payload.append({
-            "cluster": cert.cluster,
-            "ambiente": _inferir_ambiente_de_namespace(cert.namespace) or "",
-            "secreto_k8s": cert.secret_name,
-            "archivo_jks": cert.data_key,
-            "alias_certificado_individual": getattr(cert, "alias", ""),
-            "nombre_certificado": cert.common_name,
             "organizacion": getattr(cert, "organization", ""),
             "estructura_organizacional": getattr(cert, "organizational_unit", ""),
-            "fecha_inicio_certificado": cert.not_before.isoformat() if cert.not_before else None,
+            "nombre_certificado": cert.common_name,
+            "ambiente": _inferir_ambiente_de_namespace(cert.namespace) or "",
             "fecha_vencimiento_certificado": not_after.isoformat() if not_after else None,
+            "cluster": cert.cluster,
+            "secreto_k8s": cert.secret_name,
+            "archivo_jks": cert.data_key,
             "password": cert.password,
-            "pod_vinculado": getattr(cert, "pods", ""),
-            "servidor_nodo": getattr(cert, "nodes", ""),
         })
 
     return payload

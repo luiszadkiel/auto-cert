@@ -1,6 +1,6 @@
 """
 services/azure_auth_service.py
-────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Maneja la autenticación y configuración robusta de contextos de AKS en Azure.
 Implementa las lecciones aprendidas:
 - `az login` con tenant forzado
@@ -33,8 +33,14 @@ class AzureAuthService:
             cmd[0] = "kubelogin.exe"
             
         env = os.environ.copy()
-        # Bypass broken permissions in ~/.azure/cliextensions by using a local dir
-        env["AZURE_EXTENSION_DIR"] = os.path.join(os.getcwd(), ".az_ext")
+        # Usar extensiones del volumen montado si existen, sino usar directorio local
+        default_ext_dir = os.path.expanduser("~/.azure/cliextensions")
+        local_ext_dir = os.path.join(os.getcwd(), ".az_ext")
+        if os.path.isdir(default_ext_dir):
+            env["AZURE_EXTENSION_DIR"] = default_ext_dir
+        else:
+            os.makedirs(local_ext_dir, exist_ok=True)
+            env["AZURE_EXTENSION_DIR"] = local_ext_dir
             
         return subprocess.run(
             cmd,
@@ -59,7 +65,7 @@ class AzureAuthService:
                 
             print(f"  [!] Sesión ausente o en tenant equivocado. Iniciando login interactivo/device-code en tenant {TENANT_ID}...")
             # Forzar login. En un entorno server, ideal usar --identity o --service-principal
-            res_login = self.run_cmd(["az", "login", "--tenant", TENANT_ID], timeout=120)
+            res_login = self.run_cmd(["az", "login", "--use-device-code", "--tenant", TENANT_ID], timeout=120)
             if res_login.returncode == 0:
                 print("  [OK] Login exitoso.")
                 return True
@@ -89,7 +95,13 @@ class AzureAuthService:
             cmd[0] = "az.cmd"
             
         env = os.environ.copy()
-        env["AZURE_EXTENSION_DIR"] = os.path.join(os.getcwd(), ".az_ext")
+        default_ext_dir = os.path.expanduser("~/.azure/cliextensions")
+        local_ext_dir = os.path.join(os.getcwd(), ".az_ext")
+        if os.path.isdir(default_ext_dir):
+            env["AZURE_EXTENSION_DIR"] = default_ext_dir
+        else:
+            os.makedirs(local_ext_dir, exist_ok=True)
+            env["AZURE_EXTENSION_DIR"] = local_ext_dir
         
         # Ejecutar asíncronamente o en un hilo
         process = subprocess.Popen(
@@ -119,14 +131,30 @@ class AzureAuthService:
     def ensure_resource_graph_extension(self) -> bool:
         """
         Asegura que la extensión resource-graph esté instalada para poder descubrir los clusters.
+        Primero verifica si ya existe para evitar timeouts de red innecesarios.
         """
         print("[Azure Auth] Asegurando extensión 'resource-graph'...")
+        try:
+            # Primero verificar si ya está instalada
+            check = self.run_cmd(["az", "extension", "show", "--name", "resource-graph", "-o", "json"], timeout=15)
+            if check.returncode == 0:
+                print("  [OK] Extensión 'resource-graph' ya instalada.")
+                return True
+        except Exception:
+            pass
+        
+        # Si no está, intentar instalarla
+        print("  [INFO] Instalando extensión 'resource-graph'...")
         cmd = ["az", "extension", "add", "--name", "resource-graph", "--only-show-errors"]
-        res = self.run_cmd(cmd, timeout=60)
-        if res.returncode != 0:
-            print(f"  [ERROR] az extension add devolvió error: {res.stderr.strip()}")
+        try:
+            res = self.run_cmd(cmd, timeout=120)
+            if res.returncode != 0:
+                print(f"  [ERROR] az extension add devolvió error: {res.stderr.strip()}")
+                return False
+            return True
+        except subprocess.TimeoutExpired:
+            print("  [ERROR] Timeout instalando extensión. Verifique conectividad de red del contenedor.")
             return False
-        return True
 
     def discover_all_aks_clusters(self) -> list[dict]:
         """

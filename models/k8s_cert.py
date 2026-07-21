@@ -1,10 +1,10 @@
 """
 models/k8s_cert.py
-───────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Modelos de datos para certificados Kubernetes.
 
 - K8sCert       : certificado leído directamente del cluster (via kubectl)
-- PortalK8sCert : [DEPRECADO] registro del portal — ya no se usa en el flujo
+- PortalK8sCert : [DEPRECADO] registro del portal â€” ya no se usa en el flujo
                   de exploración masiva (jks_discovery_controller), que no
                   depende del portal DevOps. Se deja por compatibilidad con
                   código que aún no haya sido migrado.
@@ -16,13 +16,13 @@ from datetime import datetime, timezone
 from typing import Optional
 
 
-# ─── Fechas ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Fechas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 PORTAL_DATE_FMT = "%m/%d/%Y %H:%M:%S"   # formato que usa el portal: 01/19/2022 12:16:37
 
 
 def parse_portal_date(raw: str) -> Optional[datetime]:
-    """Parsea una fecha en el formato del portal → datetime UTC-aware."""
+    """Parsea una fecha en el formato del portal â†’ datetime UTC-aware."""
     try:
         return datetime.strptime(raw.strip(), PORTAL_DATE_FMT).replace(
             tzinfo=timezone.utc
@@ -31,7 +31,7 @@ def parse_portal_date(raw: str) -> Optional[datetime]:
         return None
 
 
-# ─── Modelos ──────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Modelos â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @dataclass
 class K8sCert:
@@ -48,16 +48,14 @@ class K8sCert:
     common_name: str                    # CN del Subject del certificado
     not_before: Optional[datetime]      # fecha de emisión (UTC)
     not_after: Optional[datetime]       # fecha de vencimiento (UTC)
-    secret_type: str                    # CRT | Opaque | JKS
     organization: str = ""              # Organización (O)
     organizational_unit: str = ""       # Unidad Organizacional (OU)
+    secret_type: str                    # CRT | Opaque | JKS
     san: list = field(default_factory=list)  # Subject Alternative Names (DNS)
     cert_pem: bytes = field(default_factory=bytes, repr=False)  # raw PEM o JKS
     data_key: str = ""                  # key dentro de .data: "tls.crt", "brokerKeystore.jks"
     alias: str = ""                     # alias dentro del JKS (vacío para CRT)
     password: str = ""                  # password del keystore JKS (vacío para CRT)
-    pods: str = ""                      # nombres de pods (separados por coma)
-    nodes: str = ""                     # nombres de nodos (separados por coma)
 
     def to_dict(self) -> dict:
         return {
@@ -73,8 +71,6 @@ class K8sCert:
             "san": self.san,
             "alias": self.alias,
             "password": self.password,
-            "pods": self.pods,
-            "nodes": self.nodes,
         }
 
 

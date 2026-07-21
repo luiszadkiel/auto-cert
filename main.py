@@ -1,16 +1,16 @@
 """
 main.py
-────────
+â”€â”€â”€â”€â”€â”€â”€â”€
 Entry point de la automatización BHD DevOps Portal.
 
 Modos disponibles:
-  py main.py               → extrae inventario de certificados (Brokers / K8s)
-  py main.py certs         → ídem modo explícito
-  py main.py k8s-sync      → [ACTUALIZADO] exploración masiva de TODOS los
+  py main.py               â†’ extrae inventario de certificados (Brokers / K8s)
+  py main.py certs         â†’ ídem modo explícito
+  py main.py k8s-sync      â†’ [ACTUALIZADO] exploración masiva de TODOS los
                               certificados K8s (CRT + JKS) en TODOS los
-                              clusters/namespaces — YA NO depende del portal.
-  py main.py jks-discovery → alias del modo anterior (nombre más explícito)
-  py main.py broker-sync   → sube certs vencidos al portal (tab Brokers / JKS)
+                              clusters/namespaces â€” YA NO depende del portal.
+  py main.py jks-discovery â†’ alias del modo anterior (nombre más explícito)
+  py main.py broker-sync   â†’ sube certs vencidos al portal (tab Brokers / JKS)
 
 Uso:
   py main.py [modo]

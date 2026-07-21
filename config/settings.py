@@ -1,6 +1,6 @@
 """
 config/settings.py
-──────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Configuración centralizada de la automatización.
 Cualquier valor que cambie según entorno o que quieras
 parametrizar sin tocar la lógica va aquí.
@@ -11,7 +11,7 @@ Las credenciales se leen desde el archivo .env (nunca hardcodeadas aquí).
 import os
 from pathlib import Path
 
-# ─── Cargar .env automáticamente ──────────────────────────────────────────────
+# â”€â”€â”€ Cargar .env automáticamente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 try:
     from dotenv import load_dotenv  # type: ignore[import-untyped]
     _env_path = Path(__file__).parent.parent / ".env"
@@ -19,17 +19,17 @@ try:
 except ImportError:
     pass  # python-dotenv no instalado: las vars deben estar en el entorno del SO
 
-# ─── Portal ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Portal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 TARGET_URL  = "https://devops.cfbhd.com/certificados/inventariodecertificados"
 HEADLESS: bool = os.getenv("HEADLESS", "False").lower() in ("true", "1", "yes")
 LOGIN_WAIT  = 300          # segundos que espera el MFA (5 min)
 
-# ─── Credenciales Microsoft / Entra ID ────────────────────────────────────────
-# Se leen desde .env — ver .env.example para el template
+# â”€â”€â”€ Credenciales Microsoft / Entra ID â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Se leen desde .env â€” ver .env.example para el template
 BHD_USERNAME: str = os.getenv("BHD_USERNAME", "")
 BHD_PASSWORD: str = os.getenv("BHD_PASSWORD", "")
 
-# ─── Playwright ───────────────────────────────────────────────────────────────
+# â”€â”€â”€ Playwright â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 BROWSER_ARGS = [
     "--ignore-certificate-errors",
     "--ignore-ssl-errors",
@@ -37,10 +37,10 @@ BROWSER_ARGS = [
 ]
 VIEWPORT = {"width": 1400, "height": 900}
 
-# ─── Salida ───────────────────────────────────────────────────────────────────
+# â”€â”€â”€ Salida â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
-# ─── Kubernetes ───────────────────────────────────────────────────────────────
+# â”€â”€â”€ Kubernetes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # (Los clústeres ahora se descubren dinámicamente usando Azure Resource Graph)
 
 # Timeout para cada llamada kubectl (segundos)
@@ -49,13 +49,13 @@ KUBECTL_TIMEOUT: int = int(os.getenv("KUBECTL_TIMEOUT", "30"))
 # Tipos de llave que contienen un certificado X.509 dentro del secret
 CERT_SECRET_KEYS: list[str] = ["tls.crt", "ca.crt", "cert.pem", "certificate.crt"]
 
-# ─── JKS (keystores) ─────────────────────────────────────────────────────────
+# â”€â”€â”€ JKS (keystores) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Patrón del secret de password:
-#   keystore-facephi → keystore-password-facephi
+#   keystore-facephi â†’ keystore-password-facephi
 #   (se reemplaza "keystore-" por "keystore-password-")
 JKS_PASSWORD_SECRET_PREFIX: str = "keystore-password-"
 
-# Key dentro del secret de password (siempre la misma — formato IBM ACE setdbparms)
+# Key dentro del secret de password (siempre la misma â€” formato IBM ACE setdbparms)
 JKS_PASSWORD_DATA_KEY: str = "setdbparms.txt"
 
 # Password de fallback si no se encuentra el secret de password
@@ -64,14 +64,14 @@ JKS_FALLBACK_PASSWORD: str = os.getenv("JKS_FALLBACK_PASSWORD", "changeit")
 # Timeout para keytool (segundos)
 KEYTOOL_TIMEOUT: int = int(os.getenv("KEYTOOL_TIMEOUT", "15"))
 
-# ─── Inventario (modo inventory) ─────────────────────────────────────────────
+# â”€â”€â”€ Inventario (modo inventory) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 INVENTORY_INPUT_PATH: str = os.path.join(
     os.path.dirname(__file__), "..", "micro_servicos_excel",
     "Inventario Certificados No Prod(Sheet1).csv",
 )
 
 
-# ─── Brokers (mqsi) ───────────────────────────────────────────────────────────
+# â”€â”€â”€ Brokers (mqsi) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Las credenciales por servidor van en servers.xlsx (no en .env).
 # Solo se mantiene aquí el correo genérico de interesados y la carpeta de certs.
 
@@ -84,8 +84,8 @@ CERTS_DIR: str = os.path.join(
     "certs",
 )
 
-# ─── Modo de Ejecución y Filtros ──────────────────────────────────────────────
-# RUN_MODE → Qué flujo ejecutar automáticamente ("broker-sync", "k8s-sync", etc)
+# â”€â”€â”€ Modo de Ejecución y Filtros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# RUN_MODE â†’ Qué flujo ejecutar automáticamente ("broker-sync", "k8s-sync", etc)
 RUN_MODE: str = os.getenv("RUN_MODE", "broker-sync")
 
 # Filtro por nombre (JKS name o K8s namespace). Separados por coma.
@@ -101,9 +101,9 @@ def get_run_filter() -> dict:
     Sirve tanto para broker-sync (nombre JKS) como para k8s-sync (namespace).
 
     Prioridad:
-      1. Si FILTER_NAME tiene valor → mode="names"
-      2. Si FILTER_LIMIT > 0        → mode="limit"
-      3. Si ambos vacíos/0          → mode="all"
+      1. Si FILTER_NAME tiene valor â†’ mode="names"
+      2. Si FILTER_LIMIT > 0        â†’ mode="limit"
+      3. Si ambos vacíos/0          â†’ mode="all"
     """
     # Prioridad 1: nombres específicos
     if FILTER_NAME.strip():
@@ -119,17 +119,17 @@ def get_run_filter() -> dict:
     return {"mode": "all"}
 
 
-# ─── Playwright Session Persistence ──────────────────────────────────────────
+# â”€â”€â”€ Playwright Session Persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 STORAGE_STATE_PATH: str = os.getenv(
     "STORAGE_STATE_PATH",
     os.path.join(os.path.dirname(__file__), "..", "auth", "storage_state.json"),
 )
 
-# ─── Umbrales de certificados (para Zabbix/alertas) ──────────────────────────
+# â”€â”€â”€ Umbrales de certificados (para Zabbix/alertas) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CERT_DIAS_WARNING: int = int(os.getenv("CERT_DIAS_WARNING", "30"))
 CERT_DIAS_CRITICAL: int = int(os.getenv("CERT_DIAS_CRITICAL", "7"))
 
-# ─── API FastAPI ─────────────────────────────────────────────────────────────
+# â”€â”€â”€ API FastAPI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 API_HOST: str = os.getenv("API_HOST", "0.0.0.0")
 API_PORT: int = int(os.getenv("API_PORT", "8088"))
 API_TRIGGER_TOKEN: str = os.getenv("API_TRIGGER_TOKEN", "")

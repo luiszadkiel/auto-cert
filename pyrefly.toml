@@ -1,0 +1,9 @@
+﻿# Pyrefly configuration â€” auto-cert
+# Apunta al virtualenv donde están instaladas las dependencias
+
+[python]
+interpreter = ".venv/Scripts/python.exe"
+
+[project]
+# Raíz del proyecto
+root = "."

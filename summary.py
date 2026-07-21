@@ -11,7 +11,7 @@ latest_file = max(files, key=os.path.getctime)
 with open(latest_file, 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-certs = data
+certs = data.get('certificados', [])
 
 print(f'Total JKS Extraídos (Certificados/Alias): {len(certs)}')
 

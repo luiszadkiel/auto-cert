@@ -1,9 +1,9 @@
-LEGACY_SERVERS = [
-    # ─── SERVIDORES ORIGINALES ───────────────────────────────────────────────
+﻿LEGACY_SERVERS = [
+    # â”€â”€â”€ SERVIDORES ORIGINALES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "192.168.242.20:443|api-ppd.bhdleon.com.do|PRE 192.168.242.20|API PPD",
     "192.168.242.9:8443|api-sqa.bhdleon.com.do|SQA 192.168.242.9|API SQA",
     "192.168.242.7:8443|api-dev.bhdleon.com.do|DEV 192.168.242.7|API DEV",
-    # ─── SERVIDORES CON IP ───────────────────────────────────────────────────
+    # â”€â”€â”€ SERVIDORES CON IP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "10.121.134.9:443|bhd-az-vm-eastus2-dynatrace-poc-001|BHD-AZ-VM-EASTUS2-DYNATRACE-POC-001|Active Gate Dynatrace T24",
     "10.121.134.8:443|bhdl-az-vm-eastus2-t24r21-noprod-002|BHDL-AZ-VM-EASTUS2-T24R21-NOPROD-002|Construccion de imagenes",
     "172.17.108.23:443|jtentrena|JTENTRENA 5.5|Jteller Entrenamiento",
@@ -220,6 +220,6 @@ LEGACY_SERVERS = [
     "172.17.103.90:443|serwfsqa01|SERWFSQA01|WorkFlow SQA",
     "172.17.103.13:443|serzbxdev01|SERZBXDEV01|Zabbix",
     "172.17.102.94:443|template-aix|Template AIX|Template de AIX Para Base de Datos Oracle",
-    # ─── SIN IP (pendiente de completar) ────────────────────────────────────
+    # â”€â”€â”€ SIN IP (pendiente de completar) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     "172.17.128.80:443|serflspoc01|SERFLSPOC01|File Server DFS Namespace POC"
 ]

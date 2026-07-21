@@ -285,7 +285,7 @@
 </head>
 <body>
     <header>
-        <h1>Auto-Cert ⚡ Dashboard</h1>
+        <h1>Auto-Cert âš¡ Dashboard</h1>
         <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.9rem; color: var(--text-muted);">
             <div><span class="status-badge" id="ws-status"></span>AKS Conectado</div>
             <div><span class="status-badge" id="ws-legacy-status"></span>Legacy Conectado</div>
@@ -326,7 +326,7 @@
             <div class="panel">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
                     <h2 style="border: none; padding: 0;">3. Resultados</h2>
-                    <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" onclick="loadResults()">↻ Refrescar</button>
+                    <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; width: auto;" onclick="loadResults()">â†» Refrescar</button>
                 </div>
                 <ul class="results-list" id="results-list">
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Cargando archivos...</p>
@@ -380,7 +380,7 @@
             
             if (msg.includes('[ERROR]') || msg.includes('[!]')) div.className = 'error';
             else if (msg.includes('[WARN]')) div.className = 'warn';
-            else if (msg.includes('[OK]') || msg.includes('✓')) div.className = 'ok';
+            else if (msg.includes('[OK]') || msg.includes('âœ“')) div.className = 'ok';
             else div.className = 'info';
             
             div.textContent = msg;

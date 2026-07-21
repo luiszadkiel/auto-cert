@@ -1,7 +1,7 @@
 """
 api/app.py
-───────────
-FastAPI application — API REST simplificada.
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+FastAPI application â€” API REST simplificada.
 Un solo endpoint sincrónico que ejecuta todo el flujo de descubrimiento
 (Azure Graph, K8s namespaces, secrets, extracción JKS/CRT) y retorna
 inmediatamente el JSON con la data consolidada.
@@ -42,7 +42,7 @@ builtins.print = broadcast_print
 
 app = FastAPI(
     title="Cert Automation API",
-    description="API REST de exploracion masiva de certificados BHD (CRT + JKS) — integracion simplificada",
+    description="API REST de exploracion masiva de certificados BHD (CRT + JKS) â€” integracion simplificada",
     version="2.0.0",
 )
 
@@ -105,15 +105,15 @@ async def list_results():
                 })
     return {"files": sorted(files, key=lambda x: x["name"], reverse=True)}
 
-# ─── Healthcheck ──────────────────────────────────────────────────────────────
+# â”€â”€â”€ Healthcheck â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.get("/api/v1/health")
 async def health():
-    """Healthcheck simple — confirma que el proceso está vivo."""
+    """Healthcheck simple â€” confirma que el proceso está vivo."""
     return {"status": "ok"}
 
 
-# ─── Discovery (Sync) ─────────────────────────────────────────────────────────
+# â”€â”€â”€ Discovery (Sync) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @app.post("/api/v1/k8s-sync/scan")
 @app.get("/api/v1/k8s-sync/scan")
@@ -122,45 +122,72 @@ async def scan_certificates(
     filter_data: Optional[dict] = Body(None)
 ):
     """
-    Dispara la exploración masiva de certificados de manera SINCRÓNICA.
+    Dispara la exploración masiva de certificados de manera SINCRÃ“NICA.
     
     Puedes hacer un GET (escanea todo) o un POST pasándole un body:
     {"names": ["nombre-cluster"]} para filtrar.
     
     Retorna directamente el JSON con el payload de certificados descubiertos.
+    RESILIENCIA: Siempre retorna un resultado, incluso parcial. Solo retorna
+    500 si la autenticación falla completamente.
     """
     # Validar token si está configurado en el .env
     if API_TRIGGER_TOKEN and x_api_key != API_TRIGGER_TOKEN:
         raise HTTPException(status_code=403, detail="Token de API inválido o ausente")
 
-    # Mapear el body a los argumentos del controller (filter_mode="names", run_filter={"names": [...]})
+    # Mapear el body a los argumentos del controller
     filter_mode = None
     run_filter = {}
     
     if filter_data and "names" in filter_data and isinstance(filter_data["names"], list):
         filter_mode = "names"
-        run_filter = {"names": filter_data["names"]}
+        run_filter = {"names": filter_data["names"], "mode": "names"}
 
-    # Ejecutar controlador de forma síncrona
+    # Ejecutar controlador
     print("[API] Iniciando escaneo masivo síncrono...")
     controller = JksDiscoveryController()
     
     try:
-        # El controlador es async, usamos await run(...)
         resultado = await controller.run(
-            run_filter=run_filter
+            run_filter=run_filter if run_filter else None
         )
         
-        if "error" in resultado:
-            raise HTTPException(status_code=500, detail=resultado["error"])
+        # Solo retornar 500 si es un error de autenticación fatal
+        if resultado.get("error") == "Azure session failed":
+            raise HTTPException(
+                status_code=401, 
+                detail="Sesión de Azure no válida. Ejecute el login primero via /api/v1/auth/login"
+            )
             
-        print(f"[API] Escaneo completado. Se retornan {resultado.get('total_certs', 0)} certificados.")
-        # Ajustar para que retorne lo que Zabbix espera
+        # Para cualquier otro caso, retornar 200 con los datos que se pudieron obtener
+        total = resultado.get("total_certs", 0)
+        errors = resultado.get("errors", [])
+        
+        if errors:
+            print(f"[API] Escaneo completado con {len(errors)} advertencia(s). Se retornan {total} certificados.")
+        else:
+            print(f"[API] Escaneo completado exitosamente. Se retornan {total} certificados.")
+        
         return {
-            "total": resultado.get("total_certs", 0),
-            "certificados": resultado.get("payload", [])
+            "total": total,
+            "certificados": resultado.get("payload", []),
+            "cluster_summaries": resultado.get("cluster_summaries", []),
+            "vencidos": resultado.get("vencidos", 0),
+            "errors": errors,
         }
         
+    except HTTPException:
+        raise  # Re-lanzar HTTPExceptions intactas (401, 403)
     except Exception as e:
-        print(f"[API] Error durante el escaneo: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Catch-all: incluso si algo inesperado falla, el servidor no muere
+        print(f"[API] Error inesperado durante el escaneo: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "total": 0,
+            "certificados": [],
+            "cluster_summaries": [],
+            "vencidos": 0,
+            "errors": [f"Error inesperado: {str(e)}"],
+        }
+
