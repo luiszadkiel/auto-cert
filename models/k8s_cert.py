@@ -48,7 +48,7 @@ class K8sCert:
     common_name: str                    # CN del Subject del certificado
     not_before: Optional[datetime]      # fecha de emisión (UTC)
     not_after: Optional[datetime]       # fecha de vencimiento (UTC)
-    secret_type: str                    # CRT | Opaque | JKS
+    secret_type: str = ""               # CRT | Opaque | JKS
     organization: str = ""              # Organización (O)
     organizational_unit: str = ""       # Unidad Organizacional (OU)
     san: list = field(default_factory=list)  # Subject Alternative Names (DNS)

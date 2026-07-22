@@ -22,6 +22,7 @@ Flujo:
 
 import os
 import asyncio
+import re
 import traceback
 from datetime import datetime, timezone
 
@@ -100,7 +101,10 @@ class JksDiscoveryController:
                     continue
             
             # 2. Omitir clusters de produccion por defecto
-            if "prd" in name or "prod" in name:
+            # BUG-FIX: "noprod" contiene "prod" → usar límites de palabra
+            is_noprod = "noprod" in name
+            is_prod = bool(re.search(r"(?<![a-z])prod(?![a-z])|(?<![a-z])prd(?![a-z])", name))
+            if is_prod and not is_noprod:
                 print(f"  [INFO] Omitiendo cluster de produccion: {name}")
                 continue
                 

@@ -59,10 +59,29 @@ JKS_PASSWORD_SECRET_PREFIX: str = "keystore-password-"
 JKS_PASSWORD_DATA_KEY: str = "setdbparms.txt"
 
 # Password de fallback si no se encuentra el secret de password
-JKS_FALLBACK_PASSWORD: str = os.getenv("JKS_FALLBACK_PASSWORD", "changeit")
+JKS_FALLBACK_PASSWORD: str = os.getenv("JKS_FALLBACK_PASSWORD", "12345678")
 
 # Timeout para keytool (segundos)
 KEYTOOL_TIMEOUT: int = int(os.getenv("KEYTOOL_TIMEOUT", "15"))
+
+# ─── JKS Update (modo jks-update) ────────────────────────────────────────────
+# JKS_UPDATE_APPLY=true  → escribe en el cluster (default: dry-run)
+JKS_UPDATE_APPLY: bool = os.getenv("JKS_UPDATE_APPLY", "false").lower() in ("true", "1", "yes")
+
+# JKS_UPDATE_PRUNE=true  → borra aliases duplicados vencidos al aplicar
+JKS_UPDATE_PRUNE: bool = os.getenv("JKS_UPDATE_PRUNE", "false").lower() in ("true", "1", "yes")
+
+# Puerto TLS para re-bajar el certificado del host
+JKS_REFETCH_PORT: int = int(os.getenv("JKS_REFETCH_PORT", "443"))
+
+# Timeout de conexión TLS (segundos)
+JKS_REFETCH_TIMEOUT: int = int(os.getenv("JKS_REFETCH_TIMEOUT", "10"))
+
+# Directorio donde se guardan backups de .jks antes de modificarlos
+JKS_BACKUP_DIR: str = os.getenv(
+    "JKS_BACKUP_DIR",
+    os.path.join(os.path.dirname(__file__), "..", "output", "jks_backups"),
+)
 
 # â”€â”€â”€ Inventario (modo inventory) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 INVENTORY_INPUT_PATH: str = os.path.join(
