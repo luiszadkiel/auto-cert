@@ -1,13 +1,13 @@
 """
 controllers/jks_discovery_controller.py
-â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-Controller: exploración masiva de TODOS los certificados (CRT y JKS) en
+------------------------------------------
+Controller: exploracion masiva de TODOS los certificados (CRT y JKS) en
 TODOS los clusters configurados (K8S_CLUSTERS), TODOS los namespaces,
 TODOS los secrets.
 
 Reemplaza a K8sSyncController para el nuevo flujo: NO hay login al portal,
-NO hay scraping, NO hay diff contra el portal, NO hay upload. La única
-responsabilidad es: descubrir â†’ extraer â†’ estructurar.
+NO hay scraping, NO hay diff contra el portal, NO hay upload. La unica
+responsabilidad es: descubrir -> extraer -> estructurar.
 
 Flujo:
   1. Para cada cluster en K8S_CLUSTERS (o el subconjunto filtrado):

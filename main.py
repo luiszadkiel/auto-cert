@@ -27,6 +27,14 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
+# Cargar variables de entorno desde .env (si existe)
+# Las variables ya definidas en el sistema tienen prioridad.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=False)  # override=False: el sistema gana sobre .env
+except ImportError:
+    pass  # sin python-dotenv instalado: continuar igual
+
 from controllers.cert_controller import CertController
 from controllers.jks_discovery_controller import JksDiscoveryController
 from controllers.broker_sync_controller import BrokerSyncController

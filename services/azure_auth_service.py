@@ -55,25 +55,67 @@ class AzureAuthService:
         """
         Garantiza que haya una sesión de Azure activa en el tenant correcto.
         """
-        print("[Azure Auth] Verificando sesión activa de Azure CLI...")
+        client_id = os.getenv("AZURE_CLIENT_ID")
+        client_secret = os.getenv("AZURE_CLIENT_SECRET")
+
+        # ── Modo 1: Service Principal ───────────────────────────────────────────
+        if client_id and client_secret:
+            print("[Azure Auth] Service Principal detectado — login automatico (sin intervencion)...")
+            res = self.run_cmd([
+                "az", "login",
+                "--service-principal",
+                "--username",  client_id,
+                "--password",  client_secret,
+                "--tenant",    TENANT_ID,
+            ], timeout=30)
+            if res.returncode == 0:
+                print("  [OK] Login con Service Principal exitoso.")
+                return True
+            else:
+                print(f"  [ERROR] Fallo SP login: {res.stderr.strip()}")
+                return False
+
+        # ── Modo 2: Usuario/Password personal (solo funciona sin MFA) ─────────
+        username = os.getenv("AZURE_USERNAME")
+        password = os.getenv("AZURE_PASSWORD")
+        if username and password:
+            print(f"[Azure Auth] Intentando login con usuario {username}...")
+            res = self.run_cmd([
+                "az", "login",
+                "--username", username,
+                "--password", password,
+                "--tenant",   TENANT_ID,
+            ], timeout=30)
+            if res.returncode == 0:
+                print("  [OK] Login con usuario/password exitoso.")
+                return True
+            else:
+                print(f"  [WARN] Login usuario/password fallo (posiblemente MFA activo): {res.stderr.strip()[:120]}")
+                print("  [INFO] Intentando device-code como alternativa...")
+                # Caer al modo 3
+
+        # ── Modo 3: Session existente o device-code ───────────────────────────
+        print("[Azure Auth] Sin SP en entorno — verificando sesion de Azure CLI...")
         try:
-            # Check current account
             res = self.run_cmd(["az", "account", "show", "--query", "tenantId", "-o", "tsv"])
             if res.returncode == 0 and res.stdout.strip() == TENANT_ID:
-                print("  [OK] Sesión activa confirmada.")
+                print("  [OK] Sesion activa confirmada.")
                 return True
-                
-            print(f"  [!] Sesión ausente o en tenant equivocado. Iniciando login interactivo/device-code en tenant {TENANT_ID}...")
-            # Forzar login. En un entorno server, ideal usar --identity o --service-principal
-            res_login = self.run_cmd(["az", "login", "--use-device-code", "--tenant", TENANT_ID], timeout=120)
+
+            print(f"  [!] Sesion ausente o en tenant equivocado. "
+                  f"Iniciando login device-code en tenant {TENANT_ID}...")
+            res_login = self.run_cmd(
+                ["az", "login", "--use-device-code", "--tenant", TENANT_ID],
+                timeout=120,
+            )
             if res_login.returncode == 0:
                 print("  [OK] Login exitoso.")
                 return True
             else:
-                print(f"  [ERROR] Falló az login: {res_login.stderr}")
+                print(f"  [ERROR] Fallo az login: {res_login.stderr}")
                 return False
         except subprocess.TimeoutExpired:
-            print("  [ERROR] Timeout al intentar verificar/iniciar sesión.")
+            print("  [ERROR] Timeout al intentar verificar/iniciar sesion.")
             return False
         except FileNotFoundError:
             print("  [ERROR] 'az' cli no encontrado en el PATH.")
