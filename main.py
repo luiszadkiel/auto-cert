@@ -6,10 +6,12 @@ Entry point de la automatización BHD DevOps Portal.
 Modos disponibles:
   py main.py               → extrae inventario de certificados (Brokers / K8s)
   py main.py certs         → ídem modo explícito
-  py main.py k8s-sync      → [ACTUALIZADO] exploración masiva de TODOS los
-                              certificados K8s (CRT + JKS) en TODOS los
-                              clusters/namespaces — YA NO depende del portal.
-  py main.py jks-discovery → alias del modo anterior (nombre más explícito)
+  py main.py k8s-sync      → exploración masiva de TODOS los certificados K8s
+                              (CRT + JKS) en TODOS los clusters/namespaces.
+  py main.py jks-discovery → alias de k8s-sync (nombre más explícito)
+  py main.py aks-only      → igual que jks-discovery pero SIN escaneo legacy.
+                              Ideal para correr en local rápidamente:
+                              device-code en la terminal, omite prod, solo AKS.
   py main.py broker-sync   → sube certs vencidos al portal (tab Brokers / JKS)
   py main.py jks-update    → detecta JKS vencidos, descarga cert fresco del
                               host, reconstruye el keystore y lo sube al cluster.
@@ -35,9 +37,16 @@ CONTROLLERS = {
     "certs":          CertController,
     "k8s-sync":       JksDiscoveryController,   # exploración masiva, sin portal
     "jks-discovery":  JksDiscoveryController,   # alias explícito
+    "aks-only":       JksDiscoveryController,   # solo AKS, sin legacy — ideal para local
     "broker-sync":    BrokerSyncController,
     "inventory":      InventoryController,
     "jks-update":     JksUpdateController,      # actualiza JKS vencidos en el cluster
+}
+
+# kwargs extra que se pasan al método run() según el modo.
+# Los modos que no aparecen aquí llaman run() sin argumentos adicionales.
+RUN_KWARGS: dict[str, dict] = {
+    "aks-only": {"include_legacy": False, "scan_prod": False},
 }
 
 if __name__ == "__main__":
@@ -50,4 +59,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     print(f"[main] Modo: {mode}")
-    asyncio.run(ctrl_class().run())
+    kwargs = RUN_KWARGS.get(mode, {})
+    asyncio.run(ctrl_class().run(**kwargs))

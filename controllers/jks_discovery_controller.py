@@ -46,7 +46,16 @@ class JksDiscoveryController:
     Los errores se registran y el escaneo continúa con los demás clusters/namespaces.
     """
 
-    async def run(self, run_filter: dict | None = None) -> dict:
+    async def run(
+        self,
+        run_filter: dict | None = None,
+        include_legacy: bool = True,
+        scan_prod: bool = False,
+    ) -> dict:
+        """
+        include_legacy: si False, salta el escaneo de servidores legacy (más rápido).
+        scan_prod:      si False (default), omite clusters de producción.
+        """
         if not run_filter:
             run_filter = {"mode": "all"}
 
@@ -100,11 +109,11 @@ class JksDiscoveryController:
                 if name not in requested:
                     continue
             
-            # 2. Omitir clusters de produccion por defecto
+            # 2. Omitir clusters de produccion (a menos que scan_prod=True)
             # BUG-FIX: "noprod" contiene "prod" → usar límites de palabra
             is_noprod = "noprod" in name
             is_prod = bool(re.search(r"(?<![a-z])prod(?![a-z])|(?<![a-z])prd(?![a-z])", name))
-            if is_prod and not is_noprod:
+            if not scan_prod and is_prod and not is_noprod:
                 print(f"  [INFO] Omitiendo cluster de produccion: {name}")
                 continue
                 
@@ -113,17 +122,20 @@ class JksDiscoveryController:
         print(f"\n[*] Iniciando exploracion masiva de certificados (CRT + JKS)")
         print(f"    {len(cluster_list)} cluster(s) a procesar (de {len(discovered_clusters)} descubiertos en el tenant)\n")
 
-        # â”€â”€ Iniciar Escaneo de Servidores Legacy en paralelo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Escaneo Legacy (opcional) ────────────────────────────────────────────
         legacy_task = None
-        try:
-            legacy_service = LegacyDiscoveryService()
-            legacy_task = asyncio.create_task(legacy_service.scan_all())
-        except Exception as e:
-            msg = f"[WARN] No se pudo iniciar escaneo Legacy: {e}"
-            print(msg)
-            errors_log.append(msg)
+        if include_legacy:
+            try:
+                legacy_service = LegacyDiscoveryService()
+                legacy_task = asyncio.create_task(legacy_service.scan_all())
+            except Exception as e:
+                msg = f"[WARN] No se pudo iniciar escaneo Legacy: {e}"
+                print(msg)
+                errors_log.append(msg)
+        else:
+            print("  [INFO] Escaneo legacy omitido (include_legacy=False)")
 
-        # â”€â”€ Recorrer cada cluster (AKS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        # ── Recorrer cada cluster (AKS) ──────────────────────────────────────────
         for cluster_meta in cluster_list:
             cluster_name = cluster_meta.get("name", "desconocido")
             try:
