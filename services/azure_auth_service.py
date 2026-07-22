@@ -114,6 +114,7 @@ class AzureAuthService:
             universal_newlines=True
         )
         
+        assert process.stdout is not None  # stdout=PIPE guarantees this
         for line in iter(process.stdout.readline, ''):
             if line:
                 callback(line.strip())

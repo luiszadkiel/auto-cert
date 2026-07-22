@@ -1,8 +1,8 @@
-﻿# Pyrefly configuration â€” auto-cert
+# Pyrefly configuration â€” auto-cert
 # Apunta al virtualenv donde están instaladas las dependencias
 
 [python]
-interpreter = ".venv/Scripts/python.exe"
+interpreter = "C:/Users/zadkiel/AppData/Local/Microsoft/WindowsApps/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/python.exe"
 
 [project]
 # Raíz del proyecto

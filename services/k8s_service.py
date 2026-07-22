@@ -950,6 +950,8 @@ class K8sService:
         cert_obj = _parse_x509(pem)
         cn = secret_name
         san: list[str] = []
+        org: str = ""
+        ou: str = ""
         not_before = None
         not_after = None
 

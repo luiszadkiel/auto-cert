@@ -48,14 +48,16 @@ class K8sCert:
     common_name: str                    # CN del Subject del certificado
     not_before: Optional[datetime]      # fecha de emisión (UTC)
     not_after: Optional[datetime]       # fecha de vencimiento (UTC)
+    secret_type: str                    # CRT | Opaque | JKS
     organization: str = ""              # Organización (O)
     organizational_unit: str = ""       # Unidad Organizacional (OU)
-    secret_type: str                    # CRT | Opaque | JKS
     san: list = field(default_factory=list)  # Subject Alternative Names (DNS)
     cert_pem: bytes = field(default_factory=bytes, repr=False)  # raw PEM o JKS
     data_key: str = ""                  # key dentro de .data: "tls.crt", "brokerKeystore.jks"
     alias: str = ""                     # alias dentro del JKS (vacío para CRT)
     password: str = ""                  # password del keystore JKS (vacío para CRT)
+    pods: str = ""                      # pods que montan este secret (separados por coma)
+    nodes: str = ""                     # nodos donde corren esos pods (separados por coma)
 
     def to_dict(self) -> dict:
         return {
