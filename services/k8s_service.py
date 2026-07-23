@@ -403,25 +403,44 @@ def _get_jks_password(
     jks_base = jks_key.replace(".jks", "")
 
     def _extract_password_from_content(content: str) -> Optional[str]:
-        """Intenta extraer la password de un contenido de texto."""
-        # Intentar formato IBM ACE: "brokerKeystore::password  aceuser 12345678"
+        """Intenta extraer la password de un contenido de texto.
+
+        Soporta dos formatos de setdbparms.txt:
+          1. Simple:   brokerKeystore::password  aceuser 12345678
+          2. Comando:  mqsisetdbparms -w /home/aceuser/ace-server -n brokerKeystore::password -u aceuser -p 12345678
+        """
+        def _parse_password_from_line(line: str) -> Optional[str]:
+            """Extrae la password de una línea que contiene ::password."""
+            parts = line.split()
+            # Formato 2 (comando mqsisetdbparms): buscar flag -p
+            if parts and parts[0].lower() in ("mqsisetdbparms", "mqsisetdbparms.exe"):
+                for i, token in enumerate(parts):
+                    if token == "-p" and i + 1 < len(parts):
+                        return parts[i + 1]
+                return None
+            # Formato 1 (simple): key::password  user  password
+            if len(parts) >= 3:
+                return parts[2]
+            return None
+
+        # Intentar formato IBM ACE con jks_base específico
         for line in content.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             if f"{jks_base}::password" in line.lower() or f"{jks_base}::password" in line:
-                parts = line.split()
-                if len(parts) >= 3:
-                    return parts[2]
+                pwd = _parse_password_from_line(line)
+                if pwd:
+                    return pwd
         # Buscar cualquier línea con ::password
         for line in content.splitlines():
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             if "::password" in line.lower():
-                parts = line.split()
-                if len(parts) >= 3:
-                    return parts[2]
+                pwd = _parse_password_from_line(line)
+                if pwd:
+                    return pwd
         # Si es una sola línea sin espacios, es la password directa
         stripped = content.strip()
         if stripped and "\n" not in stripped and " " not in stripped and len(stripped) > 2:

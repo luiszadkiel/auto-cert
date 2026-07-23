@@ -154,16 +154,16 @@ class JksDiscoveryController:
 
                 print(f"\n[->] Preparando clúster: {cluster_name}")
 
-                # 1. Pre-flight RBAC Check
-                if not auth_svc.preflight_rbac_check(sub_id, rg, cluster_name):
-                    print(f"  [!] Ignorando {cluster_name}: No hay roles asignados o error RBAC.")
-                    cluster_summaries.append({"cluster": cluster_name, "error": "No RBAC", "certs": 0})
-                    continue
-
-                # 2. Set Subscription
+                # 1. Rotar suscripción PRIMERO (antes del RBAC check)
                 if not auth_svc.set_subscription(sub_id):
                     print(f"  [!] Ignorando {cluster_name}: No se pudo setear la subscripción.")
                     cluster_summaries.append({"cluster": cluster_name, "error": "Subscription Error", "certs": 0})
+                    continue
+
+                # 2. Pre-flight RBAC Check DESPUÉS de rotar
+                if not auth_svc.preflight_rbac_check(sub_id, rg, cluster_name):
+                    print(f"  [!] Ignorando {cluster_name}: No hay roles asignados o error RBAC.")
+                    cluster_summaries.append({"cluster": cluster_name, "error": "No RBAC", "certs": 0})
                     continue
 
                 # 3. Configure Context (az aks get-credentials + kubelogin)

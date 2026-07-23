@@ -139,14 +139,16 @@ class JksUpdateController:
                 ctx = cluster_name
                 print(f"\n[->] Preparando clúster: {cluster_name}")
 
-                if not auth_svc.preflight_rbac_check(sub_id, rg, cluster_name):
-                    print(f"  [!] Ignorando {cluster_name}: sin roles RBAC.")
-                    cluster_summaries.append({"cluster": cluster_name, "error": "No RBAC"})
-                    continue
-
+                # 1. Rotar suscripción PRIMERO (antes del RBAC check)
                 if not auth_svc.set_subscription(sub_id):
                     print(f"  [!] Ignorando {cluster_name}: error al setear subscripción.")
                     cluster_summaries.append({"cluster": cluster_name, "error": "Subscription Error"})
+                    continue
+
+                # 2. RBAC check DESPUÉS de rotar (para consultar en la suscripción correcta)
+                if not auth_svc.preflight_rbac_check(sub_id, rg, cluster_name):
+                    print(f"  [!] Ignorando {cluster_name}: sin roles RBAC.")
+                    cluster_summaries.append({"cluster": cluster_name, "error": "No RBAC"})
                     continue
 
                 if not auth_svc.configure_cluster_context(rg, cluster_name):
