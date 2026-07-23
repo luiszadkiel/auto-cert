@@ -76,6 +76,10 @@ def save_csv(data: list[dict], path: str) -> str:
 def save_excel(data: list[dict] | dict[str, list[dict]], path: str) -> str:
     if not data:
         return ""
+    # Si es dict, verificar que al menos una hoja tenga datos
+    if isinstance(data, dict) and not any(data.values()):
+        print(f"  ⚠ EXCEL → Sin datos que guardar (todas las hojas vacias), omitiendo {path}")
+        return ""
     _ensure(path)
     try:
         import pandas as pd
@@ -91,6 +95,8 @@ def save_excel(data: list[dict] | dict[str, list[dict]], path: str) -> str:
         print(f"  ✓ EXCEL → {path}")
     except ImportError:
         print(f"  ⚠ EXCEL → No se pudo generar {path} (pandas/openpyxl no instalados)")
+    except Exception as e:
+        print(f"  ⚠ EXCEL → Error al guardar {path}: {e}")
     return path
 
 

@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 .az_ext/
 .env
+
+# Reportes generados (JSON, Excel, CSV) - no van en git
+output/
+
+# Archivos temporales de Excel (cuando el .xlsx esta abierto)
+~$*.xlsx
+~$*.xls

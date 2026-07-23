@@ -31,17 +31,15 @@ class AzureAuthService:
             cmd[0] = "az.cmd"
         elif os.name == "nt" and cmd[0] == "kubelogin":
             cmd[0] = "kubelogin.exe"
-            
+
         env = os.environ.copy()
-        # Usar extensiones del volumen montado si existen, sino usar directorio local
-        default_ext_dir = os.path.expanduser("~/.azure/cliextensions")
-        local_ext_dir = os.path.join(os.getcwd(), ".az_ext")
-        if os.path.isdir(default_ext_dir):
-            env["AZURE_EXTENSION_DIR"] = default_ext_dir
-        else:
-            os.makedirs(local_ext_dir, exist_ok=True)
-            env["AZURE_EXTENSION_DIR"] = local_ext_dir
-            
+        # Usar SIEMPRE el directorio local .az_ext/ para extensiones.
+        # Esto evita que una extension corrupta en el directorio del sistema
+        # (~/.azure/cliextensions) bloquee todos los comandos az.
+        local_ext_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".az_ext")
+        os.makedirs(local_ext_dir, exist_ok=True)
+        env["AZURE_EXTENSION_DIR"] = local_ext_dir
+
         return subprocess.run(
             cmd,
             capture_output=True,
@@ -253,6 +251,10 @@ class AzureAuthService:
         Verifica si el usuario actual tiene asignaciones de rol (incluyendo heredadas y de grupos)
         sobre el clúster. Esto evita ejecutar get-credentials y kubelogin inútilmente si no hay permisos.
         """
+        # Saltear el check si se solicita (aks-only lo activa para no perder 20-30s por cluster)
+        if os.getenv("SKIP_RBAC_PREFLIGHT", "").lower() in ("1", "true", "yes"):
+            return True
+
         # Obtenemos y cacheamos el ID del usuario firmado
         if not hasattr(self, "_user_id"):
             res = self.run_cmd(["az", "ad", "signed-in-user", "show", "--query", "id", "-o", "tsv"])

@@ -25,7 +25,18 @@ Uso:
 import asyncio
 import sys
 
+import os
+
 sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+
+# ── Extension dir limpio para Azure CLI ──────────────────────────────────────
+# Forzar AZURE_EXTENSION_DIR al dir local ANTES de cualquier import que use az.
+# Esto garantiza que kubectl -> kubelogin -> az tambien usen el dir limpio,
+# evitando el error 'AzureCLICredential: exit status 1' por extension corrupta.
+_project_root = os.path.dirname(os.path.abspath(__file__))
+_az_ext_dir   = os.path.join(_project_root, ".az_ext")
+os.makedirs(_az_ext_dir, exist_ok=True)
+os.environ["AZURE_EXTENSION_DIR"] = _az_ext_dir
 
 # Cargar variables de entorno desde .env (si existe)
 # Las variables ya definidas en el sistema tienen prioridad.
@@ -38,16 +49,15 @@ except ImportError:
 from controllers.cert_controller import CertController
 from controllers.jks_discovery_controller import JksDiscoveryController
 from controllers.broker_sync_controller import BrokerSyncController
-from controllers.inventory_controller import InventoryController
 from controllers.jks_update_controller import JksUpdateController
 
 CONTROLLERS = {
     "certs":          CertController,
-    "k8s-sync":       JksDiscoveryController,   # exploración masiva, sin portal
-    "jks-discovery":  JksDiscoveryController,   # alias explícito
-    "aks-only":       JksDiscoveryController,   # solo AKS, sin legacy — ideal para local
+    "k8s-sync":       JksDiscoveryController,   # exploracion masiva, sin portal
+    "jks-discovery":  JksDiscoveryController,   # alias explicito
+    "aks-only":       JksDiscoveryController,   # solo AKS, sin legacy
     "broker-sync":    BrokerSyncController,
-    "inventory":      InventoryController,
+    # "inventory" se carga de forma lazy por dependencia de arquitectura legacy
     "jks-update":     JksUpdateController,      # actualiza JKS vencidos en el cluster
 }
 
@@ -57,15 +67,33 @@ RUN_KWARGS: dict[str, dict] = {
     "aks-only": {"include_legacy": False, "scan_prod": False},
 }
 
+# Variables de entorno extra que se activan segun el modo
+RUN_ENV: dict[str, dict[str, str]] = {
+    # aks-only: saltear el check lento de 'az role assignment list' (20-30s/cluster)
+    "aks-only": {"SKIP_RBAC_PREFLIGHT": "true"},
+}
+
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "certs"
+
+    # Carga lazy de controladores con dependencias legacy
+    if mode == "inventory":
+        from controllers.inventory_controller import InventoryController
+        CONTROLLERS["inventory"] = InventoryController
 
     ctrl_class = CONTROLLERS.get(mode)
     if ctrl_class is None:
         print(f"[ERROR] Modo desconocido: '{mode}'")
-        print(f"  Modos válidos: {list(CONTROLLERS.keys())}")
+        print(f"  Modos validos: {list(CONTROLLERS.keys()) + ['inventory']}")
         sys.exit(1)
 
     print(f"[main] Modo: {mode}")
     kwargs = RUN_KWARGS.get(mode, {})
-    asyncio.run(ctrl_class().run(**kwargs))
+    # Aplicar variables de entorno especificas del modo
+    for k, v in RUN_ENV.get(mode, {}).items():
+        os.environ[k] = v
+    try:
+        asyncio.run(ctrl_class().run(**kwargs))
+    except KeyboardInterrupt:
+        print("\n[main] Proceso cancelado por el usuario.")
+        sys.exit(0)

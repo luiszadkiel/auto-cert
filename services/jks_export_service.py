@@ -59,16 +59,38 @@ def build_discovery_payload(all_certs: list[K8sCert]) -> list[dict]:
         if not_after and not_after.tzinfo is None:
             not_after = not_after.replace(tzinfo=timezone.utc)
 
+        # Calcular dias/horas vencidos o restantes
+        dias_vencidos:   Optional[int] = None
+        horas_vencidas:  Optional[int] = None
+        dias_para_vencer: Optional[int] = None
+
+        if not_after:
+            delta = now_utc - not_after          # positivo si ya venció
+            total_horas = int(delta.total_seconds() // 3600)
+            if is_expired:
+                dias_vencidos  = int(delta.total_seconds() // 86400)
+                horas_vencidas = total_horas
+            else:
+                dias_para_vencer = int((-delta).total_seconds() // 86400)
+
         payload.append({
-            "organizacion": getattr(cert, "organization", ""),
-            "estructura_organizacional": getattr(cert, "organizational_unit", ""),
-            "nombre_certificado": cert.common_name,
-            "ambiente": _inferir_ambiente_de_namespace(cert.namespace) or "",
-            "fecha_vencimiento_certificado": not_after.isoformat() if not_after else None,
-            "cluster": cert.cluster,
-            "secreto_k8s": cert.secret_name,
-            "archivo_jks": cert.data_key,
-            "password": cert.password,
+            "organizacion":                  getattr(cert, "organization", ""),
+            "estructura_organizacional":      getattr(cert, "organizational_unit", ""),
+            "nombre_certificado":             cert.common_name,
+            "ambiente":                       _inferir_ambiente_de_namespace(cert.namespace) or "",
+            "fecha_vencimiento_certificado":  not_after.isoformat() if not_after else None,
+            "vencido":                        is_expired,
+            "estado":                         estado,
+            "dias_vencidos":                  dias_vencidos,
+            "horas_vencidas":                 horas_vencidas,
+            "dias_para_vencer":               dias_para_vencer,
+            "proxima_fecha_vencimiento":      not_after.strftime("%Y-%m-%d") if (not_after and not is_expired) else None,
+            "fecha_escaneo":                  now_utc.strftime("%Y-%m-%d %H:%M UTC"),
+            "cluster":                        cert.cluster,
+            "namespace":                      cert.namespace,
+            "secreto_k8s":                    cert.secret_name,
+            "archivo_jks":                    cert.data_key,
+            "password":                       cert.password,
         })
 
     return payload

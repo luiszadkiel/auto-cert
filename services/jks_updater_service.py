@@ -447,28 +447,68 @@ def _record(
     motivo: str = "",
     entry: Optional[dict] = None,
     fresh_not_after: Optional[datetime] = None,
+    password: str = "",
+    now: Optional[datetime] = None,
 ) -> dict:
     """Construye un dict de registro para el reporte."""
-    not_after = None
+    not_after_dt: Optional[datetime] = None
+    not_after_str = None
     cn = ""
+    organizacion = ""
     entry_type = ""
+
     if entry:
-        na = entry.get("not_after")
-        not_after = na.isoformat() if na else None
-        cn = entry.get("cn", "")
-        entry_type = entry.get("entry_type", "")
+        not_after_dt = entry.get("not_after")
+        if not_after_dt:
+            if not_after_dt.tzinfo is None:
+                not_after_dt = not_after_dt.replace(tzinfo=timezone.utc)
+            not_after_str = not_after_dt.isoformat()
+        cn           = entry.get("cn", "")
+        organizacion = entry.get("organization", "")
+        entry_type   = entry.get("entry_type", "")
+
+    # Calcular dias/horas vencidos
+    dias_vencidos:   Optional[int] = None
+    horas_vencidas:  Optional[int] = None
+    dias_para_vencer: Optional[int] = None
+    _now = now or datetime.now(timezone.utc)
+
+    if not_after_dt:
+        delta = _now - not_after_dt
+        is_expired = delta.total_seconds() > 0
+        if is_expired:
+            dias_vencidos  = int(delta.total_seconds() // 86400)
+            horas_vencidas = int(delta.total_seconds() // 3600)
+        else:
+            dias_para_vencer = int((-delta).total_seconds() // 86400)
+
+    # Descripcion legible del estado
+    _estado_desc = {
+        "ACTUALIZADO":       "Certificado renovado y subido al cluster",
+        "ACTUALIZARIA":      "Se actualizaria en modo APPLY",
+        "DUPLICADO_VIGENTE": "Alias vigente, no se modifica",
+        "DUPLICADO_VENCIDO": "Alias vencido duplicado, candidato a prune",
+        "OMITIDO":           "No se pudo actualizar (ver motivo)",
+    }
+
     return {
-        "cluster":         cluster,
-        "namespace":       namespace,
-        "secret_name":     secret_name,
-        "jks_key":         jks_key,
-        "alias":           alias,
-        "cn":              cn,
-        "entry_type":      entry_type,
-        "not_after":       not_after,
-        "fresh_not_after": fresh_not_after.isoformat() if fresh_not_after else None,
-        "estado":          estado,
-        "motivo":          motivo,
+        "cluster":                  cluster,
+        "namespace":                namespace,
+        "secret_name":              secret_name,
+        "jks_key":                  jks_key,
+        "alias":                    alias,
+        "organizacion":             organizacion,
+        "nombre_certificado":       cn,
+        "entry_type":               entry_type,
+        "fecha_vencimiento_actual": not_after_str,
+        "fecha_nuevo_vencimiento":  fresh_not_after.isoformat() if fresh_not_after else None,
+        "dias_vencidos":            dias_vencidos,
+        "horas_vencidas":           horas_vencidas,
+        "dias_para_vencer":         dias_para_vencer,
+        "password":                 password,
+        "estado":                   estado,
+        "estado_descripcion":       _estado_desc.get(estado, estado),
+        "motivo":                   motivo,
     }
 
 
@@ -559,6 +599,8 @@ def process_jks_secret(
                 estado=ESTADO_DUPLICADO_VENCIDO,
                 entry=dup,
                 motivo="Alias duplicado vencido (candidato a prune)",
+                password=password,
+                now=now,
             ))
             to_prune.append(dup_alias)
 
@@ -570,6 +612,8 @@ def process_jks_secret(
                 estado=ESTADO_DUPLICADO_VIGENTE,
                 entry=latest,
                 motivo="Certificado vigente — no requiere actualización",
+                password=password,
+                now=now,
             ))
             continue
 
@@ -584,6 +628,8 @@ def process_jks_secret(
                 alias=alias, entry=latest,
                 estado=ESTADO_OMITIDO,
                 motivo="PrivateKeyEntry — requiere reemisión por CA (no auto-renovable)",
+                password=password,
+                now=now,
             ))
             continue
 
@@ -594,6 +640,8 @@ def process_jks_secret(
                 alias=alias, entry=latest,
                 estado=ESTADO_OMITIDO,
                 motivo=f"CN='{cn}' no es un hostname TLS alcanzable (probable CA/trust anchor)",
+                password=password,
+                now=now,
             ))
             continue
 
@@ -605,6 +653,8 @@ def process_jks_secret(
                 alias=alias, entry=latest,
                 estado=ESTADO_OMITIDO,
                 motivo=f"Host '{host}:{port}' no alcanzable — verificar egress/network policy",
+                password=password,
+                now=now,
             ))
             continue
 
@@ -615,6 +665,8 @@ def process_jks_secret(
                 alias=alias, entry=latest,
                 estado=ESTADO_OMITIDO,
                 motivo=f"Cert descargado de '{host}' también vencido — renovar en origen",
+                password=password,
+                now=now,
             ))
             continue
 
@@ -626,6 +678,8 @@ def process_jks_secret(
             estado=ESTADO_ACTUALIZARIA,
             motivo=f"Cert fresco descargado de '{host}' (vence {fresh_exp.date()})",
             fresh_not_after=fresh_exp,
+            password=password,
+            now=now,
         ))
 
     # ── 4. Aplicar o dejar en dry-run ────────────────────────────────────────

@@ -41,8 +41,9 @@ c:\Users\zadkiel\Downloads\auto-cert
 py main.py aks-only
 ```
 
-- Recorre todos los clusters NOPROD de Azure
-- Extrae todos los certificados (CRT + JKS)
+- Recorre **todos los clusters que NO son produccion** (DEV, QA, UAT, NOPROD, etc.)
+  Los clusters de produccion se omiten automaticamente.
+- Extrae todos los certificados encontrados (CRT + JKS)
 - Si no estas logueado en Azure: aparece el **device-code** en la terminal
   - Ve a `aka.ms/devicelogin`, ingresa el codigo, y el proceso continua solo
 - **Salida:** `output/jks_discovery_<timestamp>.json` + `.xlsx`
@@ -55,7 +56,9 @@ py main.py aks-only
 py main.py jks-discovery
 ```
 
-- Igual que `aks-only` pero tambien escanea servidores legacy
+- **Igual que el Modo 1** (todos los clusters no-produccion), pero ademas
+  escanea los **servidores legacy** (servidores fisicos/VM fuera de AKS)
+- Usa este modo cuando quieras el inventario completo de toda la empresa
 - **Salida:** `output/jks_discovery_<timestamp>.json` + `.xlsx`
 
 ---
@@ -66,7 +69,7 @@ py main.py jks-discovery
 py main.py jks-update
 ```
 
-- Detecta keystores JKS vencidos en todos los clusters NOPROD
+- Detecta keystores JKS vencidos en todos los clusters no-produccion
 - Muestra que haria, pero **no toca el cluster**
 - **Salida:** `output/jks_update_<timestamp>.json` + `.xlsx`
 
